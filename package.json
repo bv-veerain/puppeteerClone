@@ -1,0 +1,28 @@
+{
+  "name": "nodejs_siteperformance",
+  "version": "1.0.0",
+  "description": "For taking full page screenshot, normal size screenshot, generate har file for a url and calculate  yslow score for that...",
+  "main": "analyseurl.js",
+  "dependencies": {
+    "formidable": "^1.2.1",
+    "puppeteer": "^1.7.0",
+    "puppeteer-har": "^1.0.2",
+    "yslow": "^3.1.0",
+    "yslow-nodejs": "^3.1.9"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bv-akash/siteperformance.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/bv-akash/siteperformance/issues"
+  },
+  "homepage": "https://github.com/bv-akash/siteperformance#readme"
+}
