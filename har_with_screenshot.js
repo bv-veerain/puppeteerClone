@@ -20,13 +20,12 @@ server.on('request',async (req, res) => {
 			res.end(result)
 		} else {
 			let form = new formidable.IncomingForm()
-			let content =''
 			form.parse(req, (err, fields, files) => {
 				fs.readFile(files.upload.path, (err, data) => {
 					if (err) {
-						throw err 
+						throw err
 					}
-					content = data
+					let content = data || ""
 					let result = runyslow(JSON.parse(content.toString('utf-8')))
 					res.setHeader('Content-Type','application/json')
 					let cache = []
@@ -39,7 +38,6 @@ server.on('request',async (req, res) => {
 						}
 						return value
 					}))
-					cache = null
 				})
 			})
 		}
