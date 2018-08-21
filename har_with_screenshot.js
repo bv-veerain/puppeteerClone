@@ -1,16 +1,15 @@
 const CustomError = require('./customerror.js')
-let http = require('http')
+const http = require('http')
 const puppeteer = require('puppeteer')
 const PuppeteerHar = require('puppeteer-har')
 const server = http.createServer()
-let fs = require('fs')
-let formidable = require('formidable')
-let YSLOW = require('yslow').YSLOW
-let jsdom = require('jsdom')
+const fs = require('fs')
+const formidable = require('formidable')
+const YSLOW = require('yslow').YSLOW
+const jsdom = require('jsdom')
 const { JSDOM } = jsdom
 const { document } = (new JSDOM('')).window
-global.document = document
-let program = require('commander')
+const program = require('commander')
 
 server.on('request',async (req, res) => { 
 	try {
@@ -28,16 +27,7 @@ server.on('request',async (req, res) => {
 					let content = data || ""
 					let result = runyslow(JSON.parse(content.toString('utf-8')))
 					res.setHeader('Content-Type','application/json')
-					let cache = []
-					res.end(JSON.stringify(result, (key, value) => {
-						if (typeof value === 'object' && value !== null) {
-							if (cache.indexOf(value) !== -1) {
-								return { "url": value["url"] }
-							}
-							cache.push(value)
-						}
-						return value
-					}))
+					res.end(customStringify(result))
 				})
 			})
 		}
@@ -49,29 +39,37 @@ server.on('request',async (req, res) => {
 	}
 }).listen(8080)
 
+const WIDTH = 1366
+const HEIGHT = 768
+const NETWORKIDLETIMEOUT = 5000
+const PAGELOADTIMEOUT = 40000
+const EXTRAHEADERS = 'Accept-Language: en-GB,en-US;q=0.9,en;q=0.8'
+const SCREENSHOTTYPE = 'jpeg'
+const SCREENSHOTENCODING = 'base64'
+
 async function generate_screenshot_har(link, proxy_server) {
 	const browser = await puppeteer.launch({headless: true, slowmo: 0, ignoreHTTPSErrors: true,
-		args: [ `--proxy-server = ${  proxy_server}` ]})
+		args: [ `--proxy-server = ${ proxy_server}` ]})
 	const page = await browser.newPage()
-	await page.setExtraHTTPHeaders({'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8'})
+	await page.setExtraHTTPHeaders({ EXTRAHEADERS })
 	const har = new PuppeteerHar(page)
 	await har.start()
-	const response = await page.goto(link, { networkIdle2Timeout: 5000, waitUntil: 'load',
-		timeout: 40000 })
+	const response = await page.goto(link, { networkIdle2Timeout: NETWORKIDLETIMEOUT, waitUntil: 'load',
+		timeout: PAGELOADTIMEOUT })
 	await page.setViewport({
-		width: 1366,
-		height: 768
+		width: WIDTH,
+		height: HEIGHT
 	})
 	const data  =  await har.stop()
-	const fullpagescreenshot = await page.screenshot({type: 'jpeg', encoding: 'base64', fullPage: true})
-	const screenshot = await page.screenshot({type: 'jpeg', encoding: 'base64'})
+	const fullpagescreenshot = await page.screenshot({type: SCREENSHOTTYPE, encoding: SCREENSHOTENCODING, fullPage: true})
+	const screenshot = await page.screenshot({type: SCREENSHOTTYPE, encoding: SCREENSHOTENCODING})
 	browser.close()
 	if (response.status() !== 200) {
 		let error = new CustomError(`Puppeteer is Fine. Unable to Load URL ${link}`, response.status())
 		throw error
 	}
 
-	return { har : data, site_screenshot : screenshot, full_site_screenshot : fullpagescreenshot } 
+	return { har: data, site_screenshot: screenshot, full_site_screenshot: fullpagescreenshot } 
 }
 
 function runyslow(har) {
@@ -81,4 +79,17 @@ function runyslow(har) {
 	}
 	result = YSLOW.harImporter.run(document, har, program.ruleset)
 	return result
+}
+
+function customStringify(result) {
+	let cache = []
+	return JSON.stringify(result, (key, value) => {
+		if (typeof value === 'object' && value !== null) {
+			if (cache.indexOf(value) !== -1) {
+				return { "url": value["url"] }
+			}
+			cache.push(value)
+		}
+		return value
+	})
 }
