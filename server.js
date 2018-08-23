@@ -1,6 +1,6 @@
 const CustomError = require('./customerror.js')
 const YslowReport = require('./yslow_report.js')
-const HariWithScreenshot = require('./har_with_screenshot.js')
+const HarWithScreenshot = require('./har_with_screenshot.js')
 const http = require('http')
 const server = http.createServer()
 

@@ -20,14 +20,14 @@ class HarWithScreenshot {
 			}
 			let blog_url = fields['link']
 			let proxy_server = fields['proxy_server']
-			const buffer =  await this.generate_screenshot_har(blog_url, proxy_server)
+			const buffer =  await this.generate_har_with_screenshot(blog_url, proxy_server)
 			const result =  JSON.stringify(buffer)
 			res.setHeader('Content-Type','application/json')
 			res.end(result)
 		})
 	}
 
-	async generate_screenshot_har(link, proxy_server) {
+	async generate_har_with_screenshot(link, proxy_server) {
 		const browser = await puppeteer.launch({headless: true, slowmo: 0, ignoreHTTPSErrors: true,
 			args: [ `--proxy-server = ${ proxy_server}` ]})
 		const page = await browser.newPage()
@@ -53,4 +53,3 @@ class HarWithScreenshot {
 	}
 }
 module.exports = HarWithScreenshot
-
