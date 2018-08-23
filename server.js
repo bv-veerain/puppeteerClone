@@ -1,14 +1,14 @@
 const CustomError = require('./customerror.js')
 const YslowReport = require('./yslow_report.js')
-const HarScreenshot = require('./har_with_screenshot.js')
+const HariWithScreenshot = require('./har_with_screenshot.js')
 const http = require('http')
 const server = http.createServer()
 
 server.on('request', async(req, res) => { 
 	try {
 		switch (req.url) {
-		case "/har_with_screenshot" 	:	{	let harScreenshot = new HarScreenshot()
-			await harScreenshot.getHarWithScreenshot(req, res)
+		case "/har_with_screenshot" 	:	{	let harWithScreenshot = new HarWithScreenshot()
+			harWithScreenshot.getHarWithScreenshot(req, res)
 			break
 		}
 		case "/yslow_report" : {	let yslowReport = new YslowReport()

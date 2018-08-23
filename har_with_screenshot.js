@@ -11,8 +11,8 @@ const EXTRAHEADERS = 'Accept-Language: en-GB,en-US;q=0.9,en;q=0.8'
 const SCREENSHOTTYPE = 'jpeg'
 const SCREENSHOTENCODING = 'base64'
 
-class HarScreenshot {
-	async getHarWithScreenshot(req, res) {
+class HarWithScreenshot {
+	getHarWithScreenshot(req, res) {
 		let form = new formidable.IncomingForm()
 		form.parse(req,  async(err, fields) => {
 			if (err){
@@ -21,7 +21,8 @@ class HarScreenshot {
 			let blog_url = fields['link']
 			let proxy_server = fields['proxy_server']
 			const buffer =  await this.generate_screenshot_har(blog_url, proxy_server)
-			const result =  await JSON.stringify(buffer)
+			const result =  JSON.stringify(buffer)
+			res.setHeader('Content-Type','application/json')
 			res.end(result)
 		})
 	}
@@ -51,5 +52,5 @@ class HarScreenshot {
 		return { har: data, site_screenshot: screenshot, full_site_screenshot: fullpagescreenshot }
 	}
 }
-module.exports = HarScreenshot
+module.exports = HarWithScreenshot
 

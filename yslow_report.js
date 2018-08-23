@@ -24,12 +24,12 @@ class YslowReport {
 		})
 	}
 
-	runYslow(har) {
+	runYslow(har_encoded_data) {
 		let result
-		if (!har) {
+		if (!har_encoded_data) {
 			return
 		}
-		result = YSLOW.harImporter.run(document, har, program.ruleset)
+		result = YSLOW.harImporter.run(document, har_encoded_data, program.ruleset)
 		return result
 	}
 
