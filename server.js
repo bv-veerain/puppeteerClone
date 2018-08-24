@@ -4,7 +4,7 @@ const HarWithScreenshot = require('./har_with_screenshot.js')
 const http = require('http')
 const server = http.createServer()
 
-server.on('request', async(req, res) => { 
+server.on('request', (req, res) => { 
 	try {
 		switch (req.url) {
 		case "/har_with_screenshot" 	:	{	let harWithScreenshot = new HarWithScreenshot()
