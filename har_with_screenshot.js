@@ -36,7 +36,9 @@ class HarWithScreenshot {
 			args: [ `--proxy-server = ${ proxy_server}` ]
 		})
 		const page = await browser.newPage()
-		await page.authenticate({username: username, password: password})
+		if (username && password) {
+			await page.authenticate({username: username, password: password})
+		}
 		await page.setExtraHTTPHeaders({EXTRAHEADERS})
 		const har = new PuppeteerHar(page)
 		await har.start()
@@ -44,8 +46,8 @@ class HarWithScreenshot {
 			networkIdle2Timeout: NETWORKIDLETIMEOUT, 
 			waitUntil: 'load',
 			timeout: PAGELOADTIMEOUT })
-		await page.setViewport({width: WIDTH, height: HEIGHT})
 		const data = await har.stop()
+		await page.setViewport({width: WIDTH, height: HEIGHT})
 		const fullpagescreenshot = await page.screenshot({
 			type: SCREENSHOTTYPE,
 			encoding: SCREENSHOTENCODING,
