@@ -5,11 +5,13 @@ const server = http.createServer()
 
 server.on('request', (req, res) => { 
 	switch (req.url) {
-	case "/har_with_screenshot" : { let harWithScreenshot = new HarWithScreenshot()
+	case "/har_with_screenshot" : { 
+		let harWithScreenshot = new HarWithScreenshot()
 		harWithScreenshot.getHarWithScreenshot(req, res)
 		break
 	}
-	case "/yslow_report" : { let yslowReport = new YslowReport()
+	case "/yslow_report" : { 
+		let yslowReport = new YslowReport()
 		yslowReport.getYslowReport(req, res)
 		break
 	}
