@@ -1,29 +1,26 @@
-const CustomError = require('./customerror.js')
 const YslowReport = require('./yslow_report.js')
 const HarWithScreenshot = require('./har_with_screenshot.js')
 const http = require('http')
 const server = http.createServer()
 
-server.on('request', (req, res) => { 
-	try {
+server.on('request', (req, res) => {
+	if (req.method === 'POST') {
+		let harWithScreenshot, yslowReport
 		switch (req.url) {
-		case "/har_with_screenshot" : { let harWithScreenshot = new HarWithScreenshot()
+		case "/har_with_screenshot":
+			harWithScreenshot = new HarWithScreenshot()
 			harWithScreenshot.getHarWithScreenshot(req, res)
 			break
-		}
-		case "/yslow_report" : { let yslowReport = new YslowReport()
+		case "/yslow_report":
+			yslowReport = new YslowReport()
 			yslowReport.getYslowReport(req, res)
 			break
+		default:
+			res.writeHead(422)
+			res.end('Please Check Your Request')
 		}
-		default : {
-			let error = new CustomError('Please Check Request Address')
-			throw error
-		}
-		}
-	} catch (err) {
-		if (err.error_code === undefined)
-			err.error_code = 422
-		res.writeHead(err.error_code)
-		res.end(err.message)
+	} else {
+		res.writeHead(404)
+		res.end('Page Not Found')
 	}
 }).listen(8080)
