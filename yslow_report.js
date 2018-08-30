@@ -14,12 +14,19 @@ class YslowReport {
 		form.parse(req, (err, fields, files) => {
 			fs.readFile(files.upload.path, (err, data) => {
 				if (err){
-					throw err
+					res.writeHead(422)
+					res.end(err)
 				}
 				let content = data || ""
-				let result = this.runYslow(JSON.parse(content.toString('utf-8')))
-				res.setHeader('Content-Type','application/json')
-				res.end(this.customStringify(result))
+				let result
+				try {
+					result = this.runYslow(JSON.parse(content.toString('utf-8')))
+					res.setHeader('Content-Type','application/json')
+					res.end(this.customStringify(result))
+				} catch (err) {
+					res.writeHead(422)
+					res.end(err.message)
+				}
 			})
 		})
 	}

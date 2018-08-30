@@ -18,49 +18,58 @@ class HarWithScreenshot {
 			body += data
 			body = JSON.parse(body)
 			let blog_url = body['link']
-			let proxy_server = body['proxy']
-			let username = body['username']
-			let password = body['password']
-			const buffer = await self.generate_har_with_screenshot(blog_url, proxy_server, username, password)
+			let proxy_server = body['proxy'] || ''
+			let username = body['username'] || ''
+			let password = body['password'] || ''
+			const buffer = await self.generate_har_with_screenshot(blog_url, proxy_server, username, password, res)
 			const result = JSON.stringify(buffer)
 			res.setHeader('Content-Type','application/json')
 			res.end(result)
 		})
 	}
 
-	async generate_har_with_screenshot(link, proxy_server, username, password) {
-		const browser = await puppeteer.launch({
-			headless: true,
-			slowmo: 0,
-			ignoreHTTPSErrors: true,
-			args: [ `--proxy-server = ${ proxy_server}` ]
-		})
-		const page = await browser.newPage()
-		if (username && password) {
-			await page.authenticate({username: username, password: password})
-		}
-		await page.setExtraHTTPHeaders({EXTRAHEADERS})
-		const har = new PuppeteerHar(page)
-		await har.start()
-		const response = await page.goto(link, {
-			networkIdle2Timeout: NETWORKIDLETIMEOUT, 
-			waitUntil: 'load',
-			timeout: PAGELOADTIMEOUT })
-		const data = await har.stop()
-		await page.setViewport({width: WIDTH, height: HEIGHT})
-		const fullpagescreenshot = await page.screenshot({
-			type: SCREENSHOTTYPE,
-			encoding: SCREENSHOTENCODING,
-			fullPage: true
-		})
-		const screenshot = await page.screenshot({type: SCREENSHOTTYPE, encoding: SCREENSHOTENCODING})
-		browser.close()
-		if (response.status() !== 200) {
-			let error = new CustomError(`Puppeteer is Fine. Unable to Load URL ${link}`, response.status())
-			throw error
-		}
+	async generate_har_with_screenshot(link, proxy_server, username, password, res) {
+		try {
+			const browser = await puppeteer.launch({
+				headless: true,
+				slowmo: 0,
+				ignoreHTTPSErrors: true,
+				args: [ `--proxy-server = ${ proxy_server}` ]
+			})
+			const page = await browser.newPage()
+			if (username && password) {
+				await page.authenticate({username: username, password: password})
+			}
+			await page.setExtraHTTPHeaders({EXTRAHEADERS})
+			const har = new PuppeteerHar(page)
+			await har.start()
+			const response = await page.goto(link, {
+				networkIdle2Timeout: NETWORKIDLETIMEOUT, 
+				waitUntil: 'load',
+				timeout: PAGELOADTIMEOUT })
+			const data = await har.stop()
+			await page.setViewport({width: WIDTH, height: HEIGHT})
+			const fullpagescreenshot = await page.screenshot({
+				type: SCREENSHOTTYPE,
+				encoding: SCREENSHOTENCODING,
+				fullPage: true
+			})
+			const screenshot = await page.screenshot({type: SCREENSHOTTYPE, encoding: SCREENSHOTENCODING})
+			browser.close()
 
-		return { har: data, site_screenshot: screenshot, full_site_screenshot: fullpagescreenshot }
+			if (response.status() !== 200) {
+				let error = new CustomError(`Puppeteer is Fine. Unable to Load URL ${link}`, response.status())
+				throw error
+			} else {
+				return { har: data, site_screenshot: screenshot, full_site_screenshot: fullpagescreenshot }
+			}
+		} catch (err){
+			if (err.error_code === undefined)
+				err.error_code = 422
+			res.writeHead(err.error_code)
+			res.end(err.message)
+
+		}
 	}
 }
 module.exports = HarWithScreenshot
