@@ -11,7 +11,7 @@ class YslowReport {
 		let form = new formidable.IncomingForm()
 		form.parse(req, (err, fields, files) => {
 			fs.readFile(files.upload.path, (err, data) => {
-				if(err) {
+				if (err) {
 					res.writeHead(422)
 					res.end(err)
 				}
@@ -20,7 +20,7 @@ class YslowReport {
 					let result = this.runYslow(JSON.parse(content.toString('utf-8')))
 					res.setHeader('Content-Type','application/json')
 					res.end(this.customStringify(result))
-				} catch(err) {
+				} catch (err) {
 					res.writeHead(422)
 					res.end(err.message)
 				}
@@ -38,8 +38,8 @@ class YslowReport {
 	customStringify(result) {
 		let cache = []
 		return JSON.stringify(result, (key, value) => {
-			if(typeof(value) === 'object' && value !== null) {
-				if(cache.indexOf(value) !== -1) {
+			if (typeof(value) === 'object' && value !== null) {
+				if (cache.indexOf(value) !== -1) {
 					return { "url": value["url"] }
 				}
 				cache.push(value)

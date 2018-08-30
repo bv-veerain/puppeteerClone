@@ -19,11 +19,11 @@ class HarWithScreenshot {
 			body = JSON.parse(body)
 			let { link, proxy, username, password } = body
 			try {
-				const buffer = await self.generate_har_with_screenshot(link, proxy, username, password, res)
+				const buffer = await self.generate_har_with_screenshot(link, proxy, username, password)
 				const result = JSON.stringify(buffer)
 				res.setHeader('Content-Type','application/json')
 				res.end(result)
-			} catch(err) {
+			} catch (err) {
 				if (err.error_code === undefined) {
 					err.error_code = 422
 				}
@@ -33,7 +33,7 @@ class HarWithScreenshot {
 		})
 	}
 
-	async generate_har_with_screenshot(link, proxy_server, username, password, res) {
+	async generate_har_with_screenshot(link, proxy_server, username, password) {
 		const browser = await puppeteer.launch({
 			headless: true,
 			slowmo: 0,
