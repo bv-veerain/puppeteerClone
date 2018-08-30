@@ -18,9 +18,9 @@ class HarWithScreenshot {
 			body += data
 			body = JSON.parse(body)
 			let blog_url = body['link']
-			let proxy_server = body['proxy'] || ''
-			let username = body['username'] || ''
-			let password = body['password'] || ''
+			let proxy_server = body['proxy']
+			let username = body['username']
+			let password = body['password']
 			const buffer = await self.generate_har_with_screenshot(blog_url, proxy_server, username, password, res)
 			const result = JSON.stringify(buffer)
 			res.setHeader('Content-Type','application/json')
