@@ -6,24 +6,21 @@ const { JSDOM } = jsdom
 const { document } = (new JSDOM('')).window
 const program = require('commander')
 
-
-
 class YslowReport {
 	getYslowReport(req, res) {
 		let form = new formidable.IncomingForm()
 		form.parse(req, (err, fields, files) => {
 			fs.readFile(files.upload.path, (err, data) => {
-				if (err){
+				if(err) {
 					res.writeHead(422)
 					res.end(err)
 				}
 				let content = data || ""
-				let result
 				try {
-					result = this.runYslow(JSON.parse(content.toString('utf-8')))
+					let result = this.runYslow(JSON.parse(content.toString('utf-8')))
 					res.setHeader('Content-Type','application/json')
 					res.end(this.customStringify(result))
-				} catch (err) {
+				} catch(err) {
 					res.writeHead(422)
 					res.end(err.message)
 				}
@@ -32,19 +29,17 @@ class YslowReport {
 	}
 
 	runYslow(har_encoded_data) {
-		let result
 		if (!har_encoded_data) {
 			return
 		}
-		result = YSLOW.harImporter.run(document, har_encoded_data, program.ruleset)
-		return result
+		return YSLOW.harImporter.run(document, har_encoded_data, program.ruleset)
 	}
 
 	customStringify(result) {
 		let cache = []
 		return JSON.stringify(result, (key, value) => {
-			if (typeof value === 'object' && value !== null) {
-				if (cache.indexOf(value) !== -1) {
+			if(typeof(value) === 'object' && value !== null) {
+				if(cache.indexOf(value) !== -1) {
 					return { "url": value["url"] }
 				}
 				cache.push(value)
@@ -52,7 +47,7 @@ class YslowReport {
 			return value
 		})
 	}
-
 }
+
 module.exports = YslowReport
 
