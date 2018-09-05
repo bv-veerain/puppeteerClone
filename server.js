@@ -23,4 +23,4 @@ server.on('request', (req, res) => {
 		res.writeHead(404)
 		res.end('Page Not Found')
 	}
-}).listen(8080)
+}).listen(8080, '127.0.0.1')
