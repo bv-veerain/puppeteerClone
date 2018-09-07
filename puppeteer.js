@@ -67,7 +67,10 @@ class Puppeteer {
 					encoding: SCREENSHOTENCODING,
 					fullPage: true
 				})
-				const screenshot = await page.screenshot({type: SCREENSHOTTYPE, encoding: SCREENSHOTENCODING})
+				const screenshot = await page.screenshot({
+					type: SCREENSHOTTYPE,
+					encoding: SCREENSHOTENCODING
+				})
 				return { har: data, site_screenshot: screenshot, full_site_screenshot: fullpagescreenshot }
 			} else {
 				let error = new CustomError(`Puppeteer is Fine. Unable to Load URL ${link}`, response.status())
