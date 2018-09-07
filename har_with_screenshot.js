@@ -1,6 +1,8 @@
 const CustomError = require('./customerror.js')
 const puppeteer = require('puppeteer')
 const PuppeteerHar = require('puppeteer-har')
+const formidable = require('formidable')
+const atob = require('atob')
 
 const WIDTH = 1366
 const HEIGHT = 768
@@ -11,13 +13,19 @@ const SCREENSHOTTYPE = 'jpeg'
 const SCREENSHOTENCODING = 'base64'
 
 class HarWithScreenshot {
+
 	getHarWithScreenshot(req, res) {
-		let body =""
 		let self = this
-		req.on('data', async (data) => {
-			body += data
-			body = JSON.parse(body)
-			let { link, proxy, username, password } = body
+		let form = new formidable.IncomingForm()
+		form.parse(req, async(err, fields) => {
+			if (err){
+				res.writeHead(422)
+				res.end(err)
+			}
+			let link = atob(fields['link'])
+			let proxy = atob(fields['proxy'])
+			let username = atob(fields['username'])
+			let password = atob(fields['password'])
 			try {
 				const buffer = await self.generate_har_with_screenshot(link, proxy, username, password)
 				const result = JSON.stringify(buffer)
