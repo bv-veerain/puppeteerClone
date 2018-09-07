@@ -1,15 +1,15 @@
 const YslowReport = require('./yslow_report.js')
-const HarWithScreenshot = require('./har_with_screenshot.js')
+const Puppeteer = require('./puppeteer.js')
 const http = require('http')
 const server = http.createServer()
 
 server.on('request', (req, res) => {
 	if (req.method === 'POST') {
-		let harWithScreenshot, yslowReport
+		let puppeteer, yslowReport
 		switch (req.url) {
 		case "/har_with_screenshot":
-			harWithScreenshot = new HarWithScreenshot()
-			harWithScreenshot.getHarWithScreenshot(req, res)
+			puppeteer = new Puppeteer()
+			puppeteer.getHarWithScreenshot(req, res)
 			break
 		case "/yslow_report":
 			yslowReport = new YslowReport()
