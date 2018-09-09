@@ -1,26 +1,26 @@
-const YslowReport = require('./yslow_report.js')
-const Puppeteer = require('./puppeteer.js')
-const http = require('http')
-const server = http.createServer()
+'use strict'
 
-server.on('request', (req, res) => {
+const url = require('url')
+const http = require('http')
+const handler = require('./request_handler.js')
+
+const server = http.createServer((req, res) => {
 	if (req.method === 'POST') {
-		let puppeteer, yslowReport
 		switch (req.url) {
-		case "/har_with_screenshot":
-			puppeteer = new Puppeteer()
-			puppeteer.getHarWithScreenshot(req, res)
-			break
-		case "/yslow_report":
-			yslowReport = new YslowReport()
-			yslowReport.getYslowReport(req, res)
-			break
-		default:
-			res.writeHead(422)
-			res.end('Please Check Your Request')
+			case "/har_and_screenshot":
+				handler.handleGetHarAndScreenshot(req, res)
+				break
+			case "/yslow_report":
+				handler.handlePostYslowReport(req, res)
+				break
+			case "/tokenize":
+				handler.handlePostTokenize(req, res)
+				break
+			default:
+				handler.handleNotFound(req, res)
 		}
 	} else {
-		res.writeHead(404)
-		res.end('Page Not Found')
+		handler.handleNotFound(req, res)
 	}
-}).listen(8080)
+})
+server.listen(8080)
