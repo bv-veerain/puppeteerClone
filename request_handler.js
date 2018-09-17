@@ -2,7 +2,7 @@
 
 const form = new(require('formidable').IncomingForm)
 const Puppeteer = require('./puppeteer.js')
-const Yslow = require('./yslow_report.js')
+const Yslow = require('./yslow.js')
 
 module.exports.handleGetHarAndScreenshot = (req, res) => {
 	form.parse(req, async (err, fields, files) => {
