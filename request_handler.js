@@ -2,6 +2,7 @@
 
 const form = new(require('formidable').IncomingForm)
 const Puppeteer = require('./puppeteer.js')
+const Yslow = require('./yslow_report.js')
 
 module.exports.handleGetHarAndScreenshot = (req, res) => {
 	form.parse(req, async (err, fields, files) => {
@@ -29,7 +30,9 @@ module.exports.handlePostYslowReport = (req, res) => {
 		try {
 			if (err)
 				throw err
-			//YslowReport Code here.
+			let yslowReport = await Yslow.generateReport(files.upload.path)
+			res.setHeader('Content-Type','application/json')
+			res.end(yslowReport)
 		} catch (err) {
 			res.writeHead(422)
 			res.end(err.message)
