@@ -3,6 +3,7 @@
 const form = new(require('formidable').IncomingForm)
 const Puppeteer = require('./puppeteer.js')
 const Yslow = require('./yslow.js')
+const atob = require('atob')
 
 module.exports.handleGetHarAndScreenshot = (req, res) => {
 	form.parse(req, async (err, fields, files) => {
@@ -11,16 +12,18 @@ module.exports.handleGetHarAndScreenshot = (req, res) => {
 				throw err
 
 			let har_and_screenshot = await Puppeteer.generateHarAndScreenshot(
-				fields['url'],
-				fields['proxy_server'],
-				fields['username'],
-				fields['password']
+				atob(fields['link']),
+				atob(fields['proxy']),
+				atob(fields['username']),
+				atob(fields['password'])
 			) 
-			res.setHeader('Content-Type','application/json')
 			res.end(JSON.stringify(har_and_screenshot))
 		} catch (err) {
-			res.writeHead(422)
-			res.end(err.message)
+			if (err.errorCode === undefined) {
+					err.errorCode = 422
+				}
+				res.writeHead(err.errorCode)
+				res.end(err.message)
 		}
 	})
 }
@@ -31,7 +34,6 @@ module.exports.handlePostYslowReport = (req, res) => {
 			if (err)
 				throw err
 			let yslowReport = await Yslow.generateReport(files.upload.path)
-			res.setHeader('Content-Type','application/json')
 			res.end(yslowReport)
 		} catch (err) {
 			res.writeHead(422)
