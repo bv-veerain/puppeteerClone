@@ -31,9 +31,16 @@ exports.generateHarAndScreenshot = async (url, proxy_server, username, password)
 				type: 'jpeg',
 				encoding: 'base64'
 			})
-			return { har: data, site_screenshot: screenshot, full_site_screenshot: fullpagescreenshot, response_code: response.status()}
+			return {
+				site_resp_code: response.status(),
+				har: data,
+				site_screenshot: screenshot,
+				full_site_screenshot: fullpagescreenshot
+			}
 		} else {
-			return {response_code: response.status(), message: `Puppeteer Launched Fine. Site was unable to load due to ${response.status()}.`}
+			return {
+				site_resp_code: response.status()
+			}
 		}
 	} catch (err) {
 		throw err
