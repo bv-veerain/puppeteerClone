@@ -1,6 +1,7 @@
 'use strict'
 
 const form = new(require('formidable').IncomingForm)
+const Esprima = require('esprima')
 const Puppeteer = require('./puppeteer.js')
 const Yslow = require('./yslow.js')
 
@@ -11,10 +12,10 @@ module.exports.handleGetHarAndScreenshot = (req, res) => {
 				throw err
 
 			let har_and_screenshot = await Puppeteer.generateHarAndScreenshot(
-				fields['link'],
-				fields['proxy'],
-				fields['username'],
-				fields['password']
+				fields.url,
+				fields.proxy,
+				fields.username,
+				fields.password
 			) 
 			res.end(JSON.stringify(har_and_screenshot))
 		} catch (err) {
@@ -43,7 +44,9 @@ module.exports.handlePostTokenize = (req, res) => {
 		try {
 			if (err)
 				throw err
-			//Tokenizer Code here.
+
+			let tokens = Esprima.tokenize(fields.content, {loc: true });
+			res.end(JSON.stringify(tokens));
 		} catch (err) {
 			res.writeHead(422)
 			res.end(err.message)

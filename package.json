@@ -5,6 +5,7 @@
   "main": "analyseurl.js",
   "dependencies": {
     "formidable": "^1.2.1",
+    "esprima": "^4.0.1",
     "puppeteer": "^1.7.0",
     "puppeteer-har": "^1.0.2",
     "yslow": "^3.1.0",
