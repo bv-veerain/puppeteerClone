@@ -1,6 +1,5 @@
 const puppeteer = require('puppeteer')
 const PuppeteerHar = require('puppeteer-har')
-const { UnableToLoadSiteError } = require('./errors.js')
 
 exports.generateHarAndScreenshot = async (url, proxy_server, username, password) => {
 	let browser
@@ -32,11 +31,11 @@ exports.generateHarAndScreenshot = async (url, proxy_server, username, password)
 				type: 'jpeg',
 				encoding: 'base64'
 			})
-			return { har: data, site_screenshot: screenshot, full_site_screenshot: fullpagescreenshot }
+			return { har: data, site_screenshot: screenshot, full_site_screenshot: fullpagescreenshot, response_code: response.status()}
 		} else {
-			throw new UnableToLoadSiteError(`Unable to load site(${url}) : `, response.status())
+			return {response_code: response.status(), message: `Puppeteer Launched Fine. Site was unable to load due to ${response.status()}.`}
 		}
-	} catch(err) {
+	} catch (err) {
 		throw err
 	} finally {
 		if (browser)

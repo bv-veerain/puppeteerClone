@@ -18,10 +18,7 @@ module.exports.handleGetHarAndScreenshot = (req, res) => {
 			) 
 			res.end(JSON.stringify(har_and_screenshot))
 		} catch (err) {
-			if (err.errorCode === undefined) {
-				err.errorCode = 422
-			}
-			res.writeHead(err.errorCode)
+			res.writeHead(422)
 			res.end(err.message)
 		}
 	})
