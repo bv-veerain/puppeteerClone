@@ -1,7 +1,6 @@
 const fs = require('fs')
 const YSLOW = require('yslow').YSLOW
-const jsdom = require('jsdom')
-const { JSDOM } = jsdom
+const { JSDOM } = require('jsdom')
 const { document } = (new JSDOM('')).window
 const program = require('commander')
 
@@ -15,11 +14,11 @@ exports.generateReport = async (filePath) => {
 	}
 }
 
-function runYslow(harEncodedData){
-	if (!harEncodedData) {
+function runYslow(harData){
+	if (!harData) {
 		return
 	}
-	return YSLOW.harImporter.run(document, harEncodedData, program.ruleset)
+	return YSLOW.harImporter.run(document, harData, program.ruleset)
 }
 
 function customStringify(result){
