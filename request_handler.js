@@ -1,17 +1,17 @@
 'use strict'
 
-const form = new(require('formidable').IncomingForm)
 const Puppeteer = require('./puppeteer.js')
 const Yslow = require('./yslow.js')
+const formidable = require('formidable')
 
 module.exports.handleGetHarAndScreenshot = (req, res) => {
+	const form = new formidable.IncomingForm
 	form.parse(req, async (err, fields, files) => {
 		try {
 			if (err)
 				throw err
-
 			let har_and_screenshot = await Puppeteer.generateHarAndScreenshot(
-				fields['link'],
+				fields['url'],
 				fields['proxy'],
 				fields['username'],
 				fields['password']
@@ -25,6 +25,7 @@ module.exports.handleGetHarAndScreenshot = (req, res) => {
 }
 
 module.exports.handlePostYslowReport = (req, res) => {
+	const form = new formidable.IncomingForm
 	form.parse(req, async (err, fields, files) => {
 		try {
 			if (err)
@@ -39,6 +40,7 @@ module.exports.handlePostYslowReport = (req, res) => {
 }
 
 module.exports.handlePostTokenize = (req, res) => {
+	const form = new formidable.IncomingForm
 	form.parse(req, (err, fields, files) => {
 		try {
 			if (err)
