@@ -11,10 +11,10 @@ module.exports.handleGetHarAndScreenshot = (req, res) => {
 			if (err)
 				throw err
 			let har_and_screenshot = await Puppeteer.generateHarAndScreenshot(
-				fields['url'],
-				fields['proxy'],
-				fields['username'],
-				fields['password']
+				fields.url,
+				fields.proxy,
+				fields.username,
+				fields.password
 			) 
 			res.end(JSON.stringify(har_and_screenshot))
 		} catch (err) {
