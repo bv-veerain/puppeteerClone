@@ -2,17 +2,18 @@
   "name": "nodejs_siteperformance",
   "version": "1.0.0",
   "description": "For taking full page screenshot, normal size screenshot, generate har file for a url and calculate  yslow score for that...",
-  "main": "analyseurl.js",
+  "main": "server.js",
   "dependencies": {
-    "formidable": "^1.2.1",
-    "puppeteer": "^1.7.0",
+    "eslint": "^5.6.0",
+    "good": "^8.1.1",
+    "good-file": "^6.0.1",
+    "good-squeeze": "^5.1.0",
+    "hapi": "^17.6.0",
+    "puppeteer": "^1.8.0",
     "puppeteer-har": "^1.0.2",
-    "yslow": "^3.1.0",
-    "yslow-nodejs": "^3.1.9"
+    "yslow": "^3.1.0"
   },
-  "devDependencies": {
-    "eslint": "^5.4.0"
-  },
+  "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
