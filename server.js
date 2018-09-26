@@ -75,6 +75,8 @@ const registerAndStart = async () => {
 
 registerAndStart()
 
+process.setMaxListeners(15)
+
 process.on('unhandledRejection', (err) => {
   server.log(['UNHANDLEDREJECTION'], err.message)
   process.exit(1)
