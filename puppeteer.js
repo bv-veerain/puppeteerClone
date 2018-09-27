@@ -7,6 +7,7 @@ exports.generateHarAndScreenshot = async (url, proxy_server, username, password)
 	let browser
 	try {
 		browser = await puppeteer.launch({
+			ignoreHTTPSErrors: true,
 			args: [ `--proxy-server = ${ proxy_server}` ]
 		})
 		const page = await browser.newPage()
