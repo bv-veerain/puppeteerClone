@@ -14,7 +14,7 @@ server.route({
 	path: '/har_and_screenshot',
 	handler: async(request, h) => {
 		try {
-			const data = JSON.parse(request.payload)
+			const data = request.payload
 			let har_and_screenshot = await Puppeteer.generateHarAndScreenshot(
 				data.url,
 				data.proxy,
