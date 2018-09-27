@@ -6,7 +6,7 @@ const Yslow = require('./yslow.js')
 
 const server = Hapi.server({
 	port: 8080,
-	host: 'localhost'
+	host: '127.0.0.1'
 })
 
 server.route({
