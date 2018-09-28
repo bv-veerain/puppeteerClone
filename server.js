@@ -19,7 +19,8 @@ server.route({
 				data.url,
 				data.proxy,
 				data.username,
-				data.password
+				data.password,
+				request
 			)
 			return (JSON.stringify(har_and_screenshot))
 		} catch (err) {
