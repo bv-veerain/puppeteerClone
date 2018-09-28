@@ -3,13 +3,15 @@
 const puppeteer = require('puppeteer')
 const PuppeteerHar = require('puppeteer-har')
 
-exports.generateHarAndScreenshot = async (url, proxy_server, username, password) => {
-	let browser
+exports.generateHarAndScreenshot = async (url, proxy_server, username, password, request) => {
+	let browser, pid
 	try {
 		browser = await puppeteer.launch({
 			ignoreHTTPSErrors: true,
 			args: [ `--proxy-server = ${ proxy_server}` ]
 		})
+		pid = browser.process().pid
+		request.log(['HARSCREENSHOTINFO'], 'PROCESS_STARTED' + ' : ' + url + ' : ' + pid)
 		const page = await browser.newPage()
 		if (username && password) {
 			await page.authenticate({username: username, password: password})
@@ -48,7 +50,13 @@ exports.generateHarAndScreenshot = async (url, proxy_server, username, password)
 	} catch (err) {
 		throw err
 	} finally {
-		if (browser)
-			await browser.close()
+		if (browser){
+			try{
+				await browser.close()
+				request.log(['HARSCREENSHOTINFO'], 'CLOSE_SUCCESS' + ' : ' + url + ' : ' + pid)
+			} catch(err){
+				request.log(['HARSCREENSHOTINFO'], 'CLOSE_ERROR' + ' : ' + url + ' : ' + pid + ' : ' + err.message)
+			}
+		}
 	}
 }
