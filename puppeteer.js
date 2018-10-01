@@ -8,10 +8,11 @@ exports.generateHarAndScreenshot = async (url, proxy_server, username, password,
 	try {
 		browser = await puppeteer.launch({
 			ignoreHTTPSErrors: true,
+			headless: false,
 			args: [ `--proxy-server = ${ proxy_server}` ]
 		})
 		pid = browser.process().pid
-		request.log(['HARSCREENSHOTINFO'], `${'PROCESS_STARTED' + ' : '}${  url  } : ${  pid}`)
+		request.log(['HARSCREENSHOTINFO'], `${'PROCESS_STARTED : '}${url} : ${pid}`)
 		const page = await browser.newPage()
 		if (username && password) {
 			await page.authenticate({username: username, password: password})
@@ -51,14 +52,16 @@ exports.generateHarAndScreenshot = async (url, proxy_server, username, password,
 		throw err
 	} finally {
 		try {
-			if (pid && browser){
-				await browser.close()
-				request.log(['HARSCREENSHOTINFO'], `${'CLOSE_SUCCESS' + ' : '}${  url  } : ${  pid}`)
-			} else if (pid && !browser){
-				request.log(['HARSCREENSHOTINFO'], `${'BROWSER_UNDEFINED_ERROR' + ' : '}${  url  } : ${  pid}`)
+			if (pid) {
+				if(browser) {
+					await browser.close()
+					request.log(['HARSCREENSHOTINFO'], `${'CLOSE_SUCCESS : '}${url} : ${pid}`)
+				} else {
+					request.log(['HARSCREENSHOTINFO'], `${'BROWSER_UNDEFINED_ERROR : '}${url} : ${pid}`)
+				}
 			}
 		} catch (err){
-			request.log(['HARSCREENSHOTINFO'], `${'CLOSE_ERROR' + ' : '}${  url  } : ${  pid  } : ${  err.message}`)
+			request.log(['HARSCREENSHOTINFO'], `${'CLOSE_ERROR : '}${url} : ${pid} : ${err.message}`)
 		}
 	}
 }
