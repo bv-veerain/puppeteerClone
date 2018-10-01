@@ -3,6 +3,7 @@
 const Hapi = require('hapi')
 const Puppeteer = require('./puppeteer.js')
 const Yslow = require('./yslow.js')
+const Esprima = require('esprima')
 
 const server = Hapi.server({
 	port: 8080,
@@ -44,6 +45,21 @@ server.route({
 			return await Yslow.generateReport(data.upload.path)
 		} catch (err) {
 			request.log(['YSLOWERROR'], err.message)
+			return h.response(err.message).code(422)
+		}
+	}
+})
+
+server.route({
+	method: 'POST',
+	path:'/tokenize',
+	handler: (request, h) => {
+		try {
+			let tokens;
+			tokens = Esprima.tokenize(request.payload.content, {loc: true })
+			return JSON.stringify(tokens)
+		} catch (err) {
+			request.log(['TOKENIZER_ERROR'], err.message)
 			return h.response(err.message).code(422)
 		}
 	}
