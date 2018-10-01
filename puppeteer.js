@@ -8,7 +8,6 @@ exports.generateHarAndScreenshot = async (url, proxy_server, username, password,
 	try {
 		browser = await puppeteer.launch({
 			ignoreHTTPSErrors: true,
-			headless: false,
 			args: [ `--proxy-server = ${ proxy_server}` ]
 		})
 		pid = browser.process().pid
@@ -53,7 +52,7 @@ exports.generateHarAndScreenshot = async (url, proxy_server, username, password,
 	} finally {
 		try {
 			if (pid) {
-				if(browser) {
+				if (browser) {
 					await browser.close()
 					request.log(['HARSCREENSHOTINFO'], `${'CLOSE_SUCCESS : '}${url} : ${pid}`)
 				} else {
