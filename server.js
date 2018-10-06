@@ -25,7 +25,6 @@ server.route({
 			)
 			return (JSON.stringify(har_and_screenshot))
 		} catch (err) {
-			request.log(['HARANDSCREENSHOTERROR'], err.message)
 			return h.response(err.message).code(422)
 		}
 	}
