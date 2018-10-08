@@ -49,7 +49,11 @@ server.route({
 			request.log(['YSLOWERROR'], err.message)
 			return h.response(err.message).code(422)
 		} finally {
-			fs.unlinkSync(data.upload.path)	
+			if(data.upload.path) {
+				fs.unlinkSync(data.upload.path)
+			} else {
+				request.log(['YSLOWERROR'], 'FILE DOESNOT EXIST')
+			}
 		}
 	}
 })
