@@ -61,6 +61,11 @@ server.route({
 server.route({
 	method: 'POST',
 	path:'/tokenize',
+	config: {
+		payload: {
+			maxBytes: 1000 * 1000 * 25
+		}
+	},
 	handler: (request, h) => {
 		try {
 			let tokens;
