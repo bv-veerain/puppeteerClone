@@ -13,10 +13,9 @@ exports.generateHarAndScreenshot = async (url, proxy_server, username, password,
 		})
 		pid = browser.process().pid
 		const page = await browser.newPage()
-		if (username && password) {
-			await page.authenticate({username: username, password: password})
-		}
-		await page.setExtraHTTPHeaders({'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8'})
+		await page.setExtraHTTPHeaders({
+			'Authorization': 'Basic ' + Buffer.from(`${username}:${password}`).toString('base64')
+		})
 		await page.setViewport({width: 1366, height: 768})
 		const har = new PuppeteerHar(page)
 		await har.start()
