@@ -4,11 +4,12 @@ const puppeteer = require('puppeteer')
 const PuppeteerHar = require('puppeteer-har')
 
 exports.generateHarAndScreenshot = async (url, proxy_server, username, password) => {
-	let browser
+	let browser, args
+	args = proxy_server ? [ `--proxy-server=http=${proxy_server};https=${proxy_server}` ] : []
 	try {
 		browser = await puppeteer.launch({
 			ignoreHTTPSErrors: true,
-			args: [ `--proxy-server=http=${proxy_server};https=${proxy_server}` ]
+			args: args
 		})
 		const page = await browser.newPage()
 		if (username && password) {

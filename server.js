@@ -15,9 +15,10 @@ server.route({
 	handler: async(request, h) => {
 		try {
 			const data = request.payload
+			let proxy = data.proxy.endsWith('/') ? data.proxy.slice(0, -1) : data.proxy
 			let har_and_screenshot = await Puppeteer.generateHarAndScreenshot(
 				data.url,
-				data.proxy,
+				proxy,
 				data.username,
 				data.password
 			)
