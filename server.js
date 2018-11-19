@@ -3,6 +3,8 @@
 const Hapi = require('hapi')
 const Puppeteer = require('./puppeteer.js')
 const Yslow = require('./yslow.js')
+const Esprima = require('esprima')
+const fs = require('fs')
 
 const server = Hapi.server({
 	port: 8080,
@@ -20,11 +22,11 @@ server.route({
 				data.url,
 				proxy,
 				data.username,
-				data.password
+				data.password,
+				request
 			)
 			return (JSON.stringify(har_and_screenshot))
 		} catch (err) {
-			request.log(['HARANDSCREENSHOTERROR'], err.message)
 			return h.response(err.message).code(422)
 		}
 	}
@@ -36,14 +38,42 @@ server.route({
 	config: {
 		payload: {maxBytes: 1000 * 1000 * 25,
 			parse: true,
-			output: 'file'}
+			output: 'file',
+			uploads: __dirname + '/yslow_files/'}
 	},
 	handler: async (request, h) => {
+		var data
 		try {
-			const data = request.payload
+			data = request.payload
 			return await Yslow.generateReport(data.upload.path)
 		} catch (err) {
 			request.log(['YSLOWERROR'], err.message)
+			return h.response(err.message).code(422)
+		} finally {
+			if(data.upload.path) {
+				fs.unlinkSync(data.upload.path)
+			} else {
+				request.log(['YSLOWERROR'], 'FILE DOESNOT EXIST')
+			}
+		}
+	}
+})
+
+server.route({
+	method: 'POST',
+	path:'/tokenize',
+	config: {
+		payload: {
+			maxBytes: 1000 * 1000 * 25
+		}
+	},
+	handler: (request, h) => {
+		try {
+			let tokens;
+			tokens = Esprima.tokenize(request.payload.content, {loc: true })
+			return JSON.stringify(tokens)
+		} catch (err) {
+			request.log(['TOKENIZER_ERROR'], err.message)
 			return h.response(err.message).code(422)
 		}
 	}
