@@ -8,7 +8,7 @@ exports.generateHarAndScreenshot = async (url, proxy_server, username, password)
 	try {
 		browser = await puppeteer.launch({
 			ignoreHTTPSErrors: true,
-			args: [ ``--proxy-server=http=${proxy_server};https=${proxy_server}`` ]
+			args: [ `--proxy-server=http=${proxy_server};https=${proxy_server}` ]
 		})
 		const page = await browser.newPage()
 		if (username && password) {
