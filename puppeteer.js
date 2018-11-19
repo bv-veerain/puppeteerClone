@@ -4,7 +4,7 @@ const puppeteer = require('puppeteer')
 const PuppeteerHar = require('puppeteer-har')
 const AllowScreenshotRespCode = [200, 404]
 
-exports.generateHarAndScreenshot = async (url, proxy_server, username, password) => {
+exports.generateHarAndScreenshot = async (url, proxy_server, username, password, request) => {
 	let browser, pid, args
 	args = proxy_server ? [ `--proxy-server=http=${proxy_server};https=${proxy_server}` ] : []
 	try {
