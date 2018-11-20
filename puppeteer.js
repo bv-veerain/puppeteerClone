@@ -5,11 +5,12 @@ const PuppeteerHar = require('puppeteer-har')
 const AllowScreenshotRespCode = [200, 404]
 
 exports.generateHarAndScreenshot = async (url, proxy_server, username, password, request) => {
-	let browser, pid
+	let browser, pid, args
+	args = proxy_server ? [ `--proxy-server=${proxy_server}` ] : []
 	try {
 		browser = await puppeteer.launch({
 			ignoreHTTPSErrors: true,
-			args: [ `--proxy-server=http=${proxy_server};https=${proxy_server}` ]
+			args: args
 		})
 		pid = browser.process().pid
 		const page = await browser.newPage()
