@@ -32,7 +32,6 @@ exports.generateHarAndScreenshot = async (url, proxy_server, username, password,
 		request.log(['HARANDSCREENSHOTINFO'],`WEBPAGE_LOADED_AND_RESPONCE_CREATED : ${url} : ${pid} `)                
 		const data = await har.stop()
 		request.log(['HARANDSCREENSHOTINFO'],`HAR_STOPPED : ${url} : ${pid} `)
-
 		if (AllowScreenshotRespCode.includes(response.status())) {
 			request.log(['HARANDSCREENSHOTINFO'],`START_TAKING_SCREENSHOT : ${url} : ${pid} `)
 			const fullPageScreenshot = await Promise.race([
@@ -62,14 +61,11 @@ exports.generateHarAndScreenshot = async (url, proxy_server, username, password,
 				har: data,
 				site_screenshot: screenshot,
 				full_site_screenshot: fullPageScreenshot
-
 			}
 		} else {
 			request.log(['HARANDSCREENSHOTINFO'], `SCREENSHOT_FAILED : ${url} : ${pid} `)
 			return {
-
 				site_resp_code: response.status()
-
 			}
 		}
 	} catch (err) {
@@ -78,7 +74,6 @@ exports.generateHarAndScreenshot = async (url, proxy_server, username, password,
 	} finally {
 		if (browser){
 			request.log(['HARANDSCREENSHOTINFO'],`BROWSER_CLOSING : ${url} : ${pid}`)
-
 			try {
 				await browser.close()
 				request.log(['HARANDSCREENSHOTINFO'],`BROWSER_CLOSED : ${url} : ${pid}`)
