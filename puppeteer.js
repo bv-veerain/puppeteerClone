@@ -17,7 +17,6 @@ exports.generateHarAndScreenshot = async (url, proxy_server, username, password,
 		request.log(['HARANDSCREENSHOTINFO'],`BROWSER_LAUNCHED_AND_NEW_TAB_OPENING : ${url} : ${pid} `)
 		const page = await browser.newPage()
 		request.log(['HARANDSCREENSHOTINFO'],`NEW_TAB_OPENED_AND_SETTING_EXTRA_HEADERS : ${url} : ${pid} `)
-
 		await page.setExtraHTTPHeaders({
 			'Authorization': 'Basic ' + Buffer.from(`${username}:${password}`).toString('base64')
 		})
