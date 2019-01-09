@@ -68,7 +68,7 @@ exports.generateHarAndScreenshot = async (url, proxy_server, username, password,
 		}
 	} catch (err) {
 		request.log(['HARANDSCREENSHOTERROR'], `SCREENSHOT_ERRORS : ${url} : ${pid} : ${err.message}`)
-		throw err
+		throw err 
 	} finally {
 		if (browser){
 			request.log(['HARANDSCREENSHOTINFO'],`BROWSER_CLOSING : ${url} : ${pid}`)
