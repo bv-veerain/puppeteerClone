@@ -53,7 +53,7 @@ exports.generateHarAndScreenshot = async (url, proxy_server, username, password,
 			} else {
 				request.log(['HARANDSCREENSHOTINFO'],`${seq_no}-SCREENSHOT_TAKEN-${url}`)
 			}
-			return {  
+			return {
 				site_resp_code: response.status(),
 				har: data,
 				site_screenshot: screenshot,
