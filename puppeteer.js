@@ -3,11 +3,10 @@
 const puppeteer = require('puppeteer')
 const PuppeteerHar = require('puppeteer-har')
 const AllowScreenshotRespCode = [200, 404]
-
+const seq_no = function(){
+	return Math.floor(Math.random() *100000000000000)}();
 exports.generateHarAndScreenshot = async (url, proxy_server, username, password, request) => {
 	let browser, pid, args
-	const seq_no = function(){
-		return Math.floor(Math.random() * (1000000000000 - 100000000000 + 1)) + 100000000000}();
 	args = proxy_server ? [ `--proxy-server=${proxy_server}` ] : []
 	try {   
 		request.log(['HARANDSCREENSHOTINFO'],`${seq_no}-BROWSER_LAUNCHING-${url}`)
