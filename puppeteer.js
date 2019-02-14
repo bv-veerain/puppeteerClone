@@ -82,3 +82,38 @@ exports.generateHarAndScreenshot = async (url, proxy_server, username, password,
 		}
 	}
 }
+
+exports.capturePdf = async (url, proxy_server, username, password, request) => {
+	let browser, pid
+	let task = 'CAPTUREPDF'
+	let args = proxy_server ? [ `--proxy-server=${proxy_server}` ] : []
+	//try {
+		request.log(['HARANDSCREENSHOTINFO'],`${seq_no}-BROWSER_LAUNCHING-${url}`)
+		browser = await puppeteer.launch({
+			ignoreHTTPSErrors: true,
+			args: args
+		})
+		pid = browser.process().pid
+		request.log(['HARANDSCREENSHOTINFO'],`${seq_no}-BROWSER_LAUNCHED_AND_NEW_TAB_OPENING-${url}-${pid}`)
+		const page = await browser.newPage()
+		request.log(['HARANDSCREENSHOTINFO'],`${seq_no}-NEW_TAB_OPENED_AND_SETTING_EXTRA_HEADERS-${url}-${pid}`)
+		await page.setExtraHTTPHeaders({
+			'Authorization': 'Basic ' + Buffer.from(`${username}:${password}`).toString('base64')
+		})
+		request.log(['HARANDSCREENSHOTINFO'],`${seq_no}-EXTRA_HEADERS_WERE_SET_UP_AND_SETTING_VIEWPORT-${url}-${pid}`)
+		await page.setViewport({width: 1366, height: 768})
+		request.log(['HARANDSCREENSHOTINFO'],`${seq_no}-WEBPAGE_LOADING_AND_HAR_STARTED-${url}-${pid}`)
+	const response = await page.goto(url, {
+		waitUntil: 'networkidle0',
+		timeout: 40000
+	})
+	const pdf = await page.pdf({
+		format: 'A4',
+		printBackground: true,
+		margin: {top: '1cm', right: '1cm', bottom: '1cm', left: '1cm'}
+	});
+	return {
+		pdf: Buffer.from(pdf).toString('base64')
+	}
+	//}
+}
