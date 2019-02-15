@@ -2,56 +2,78 @@
 
 const puppeteer = require('puppeteer')
 const PuppeteerHar = require('puppeteer-har')
-const AllowScreenshotRespCode = [200, 404]
-const seq_no = function(){
-	return Math.floor(Math.random() *100000000000000)}();
+const allowScreenshotRespCode = [200, 404]
+const genRandomSequence = () => {
+	return Math.floor(Math.random() *100000000000000)
+}
+
+const pageGotoOptions = {
+	waitUntil: 'networkidle0',
+	timeout: 40000
+}
+
+const launchChromeWithNewPage = async (args) => {
+	const browser = await puppeteer.launch({
+		ignoreHTTPSErrors: true,
+		args: args
+	})
+	const page = await browser.newPage()
+	return {
+		browser: browser,
+		page: page
+	}
+}
+
+const setViewPortAndHeader = async (page, options={}) => {
+	await page.setExtraHTTPHeaders({
+		'Authorization': `Basic  + ${Buffer.from(`${options.username}:${options.password}`).toString('base64')}`
+	})
+	await page.setViewport({
+		width: options.width || 1366,
+		height: options.height || 768
+	})
+	return page
+}
+
 exports.generateHarAndScreenshot = async (url, proxy_server, username, password, request) => {
 	let browser, pid, args
+	let seq_no = genRandomSequence()
 	args = proxy_server ? [ `--proxy-server=${proxy_server}` ] : []
-	try {   
-		request.log(['HARANDSCREENSHOTINFO'],`${seq_no}-BROWSER_LAUNCHING-${url}`)
-		browser = await puppeteer.launch({
-			ignoreHTTPSErrors: true,
-			args: args
-		})
+	let task = 'HARANDSCREENSHOTINFO'
+	try {
+		request.log([task],`${seq_no}-BROWSER_LAUNCHING-${url}`)
+		let res = await launchChromeWithNewPage(args)
+		browser = res.browser
+		let page = res.page
 		pid = browser.process().pid
-		request.log(['HARANDSCREENSHOTINFO'],`${seq_no}-BROWSER_LAUNCHED_AND_NEW_TAB_OPENING-${url}-${pid}`)
-		const page = await browser.newPage()
-		request.log(['HARANDSCREENSHOTINFO'],`${seq_no}-NEW_TAB_OPENED_AND_SETTING_EXTRA_HEADERS-${url}-${pid}`)
-		await page.setExtraHTTPHeaders({
-			'Authorization': 'Basic ' + Buffer.from(`${username}:${password}`).toString('base64')
-		})
-		request.log(['HARANDSCREENSHOTINFO'],`${seq_no}-EXTRA_HEADERS_WERE_SET_UP_AND_SETTING_VIEWPORT-${url}-${pid}`)
-		await page.setViewport({width: 1366, height: 768})
-		request.log(['HARANDSCREENSHOTINFO'],`${seq_no}-WEBPAGE_LOADING_AND_HAR_STARTED-${url}-${pid}`)
+		request.log([task],`${seq_no}-BROWSER_LAUNCHED_WITH_NEW_PAGE-${url}-${pid}`)
+		page = await setViewPortAndHeader(page, {username:username, password:password})
+		request.log([task],`${seq_no}-APPLIED_VIEW_PORT_AND_HEADER-${url}-${pid}`)
 		const har = new PuppeteerHar(page)
 		await har.start()
-		const response = await page.goto(url, {
-			waitUntil: 'networkidle0',
-			timeout: 40000
-		})
-		request.log(['HARANDSCREENSHOTINFO'],`${seq_no}-WEBPAGE_LOADED_AND_RESPONCE_CREATED-${url}-${pid}`)
+		request.log([task],`${seq_no}-HAR_STARTED-${url}-${pid}`)
+		const response = await page.goto(url, pageGotoOptions)
+		request.log([task],`${seq_no}-URL_LOADED-${url}-${pid}`)
 		const data = await har.stop()
-		request.log(['HARANDSCREENSHOTINFO'],`${seq_no}-HAR_STOPPED-${url}-${pid}`)
-		if (AllowScreenshotRespCode.includes(response.status())) {
-			request.log(['HARANDSCREENSHOTINFO'],`${seq_no}-START_TAKING_SCREENSHOT-${url}-${pid}`)
+		request.log([task],`${seq_no}-HAR_STOPPED-${url}-${pid}`)
+		if (allowScreenshotRespCode.includes(response.status())) {
 			const fullPageScreenshot = await Promise.race([
 				page.screenshot({type: 'jpeg', encoding: 'base64', fullPage: true}),
-				new Promise((resolve, reject) => setTimeout(resolve, 20000, 'Full Screenshot Timed Out'))
+				new Promise((resolve) => setTimeout(resolve, 20000, 'Full Screenshot Timed Out'))
 			])
 			if (fullPageScreenshot === 'Full Screenshot Timed Out') {
-				request.log(['HARANDSCREENSHOTINFO'], `${seq_no}-FULLPAGE_SCREENSHOT_TIMEDOUT-${url}-${pid}`)
+				request.log([task], `${seq_no}-FULLPAGE_SCREENSHOT_TIMEDOUT-${url}-${pid}`)
 			} else	{
-				request.log(['HARANDSCREENSHOTINFO'],`${seq_no}-FULLPAGE_SCREENSHOT_TAKEN-${url}-${pid}`)
+				request.log([task],`${seq_no}-FULLPAGE_SCREENSHOT_TAKEN-${url}-${pid}`)
 			}
 			const screenshot = await Promise.race([
 				page.screenshot({type: 'jpeg', encoding: 'base64'}),
-				new Promise((resolve, reject) => setTimeout(resolve, 20000, 'Site Screenshot Timed Out'))
+				new Promise((resolve) => setTimeout(resolve, 20000, 'Site Screenshot Timed Out'))
 			])
 			if (screenshot === 'Site Screenshot Timed Out') {
-				request.log(['HARANDSCREENSHOTINFO'],`${seq_no}-SCREENSHOT_TIMEDOUT-${url}-${pid}`)
+				request.log([task],`${seq_no}-SCREENSHOT_TIMEDOUT-${url}-${pid}`)
 			} else {
-				request.log(['HARANDSCREENSHOTINFO'],`${seq_no}-SCREENSHOT_TAKEN-${url}-${pid}`)
+				request.log([task],`${seq_no}-SCREENSHOT_TAKEN-${url}-${pid}`)
 			}
 			return {
 				site_resp_code: response.status(),
@@ -60,7 +82,7 @@ exports.generateHarAndScreenshot = async (url, proxy_server, username, password,
 				full_site_screenshot: fullPageScreenshot
 			}
 		} else {
-			request.log(['HARANDSCREENSHOTINFO'], `${seq_no}-SCREENSHOT_FAILED-${url}-${pid}`)
+			request.log([task], `${seq_no}-SCREENSHOT_FAILED-${url}-${pid}`)
 			return {
 				site_resp_code: response.status()
 			}
@@ -70,10 +92,9 @@ exports.generateHarAndScreenshot = async (url, proxy_server, username, password,
 		throw err
 	} finally {
 		if (browser){
-			request.log(['HARANDSCREENSHOTINFO'],`${seq_no}-BROWSER_CLOSING-${url}-${pid}`)
 			try {
 				await browser.close()
-				request.log(['HARANDSCREENSHOTINFO'],`${seq_no}-BROWSER_CLOSED-${url}-${pid}`)
+				request.log([task],`${seq_no}-BROWSER_CLOSED-${url}-${pid}`)
 			} catch (err){
 				request.log(['HARANDSCREENSHOTERROR'],`${seq_no}-BROWSER_CLOSING_ERRORS-${url}-${pid}`)
 			}
@@ -87,33 +108,40 @@ exports.capturePdf = async (url, proxy_server, username, password, request) => {
 	let browser, pid
 	let task = 'CAPTUREPDF'
 	let args = proxy_server ? [ `--proxy-server=${proxy_server}` ] : []
-	//try {
-		request.log(['HARANDSCREENSHOTINFO'],`${seq_no}-BROWSER_LAUNCHING-${url}`)
-		browser = await puppeteer.launch({
-			ignoreHTTPSErrors: true,
-			args: args
-		})
+	let seq_no = genRandomSequence()
+	try {
+		request.log([task],`${seq_no}-BROWSER_LAUNCHING-${url}`)
+		let res = await launchChromeWithNewPage(args)
+		browser = res.browser
+		let page = res.page
 		pid = browser.process().pid
-		request.log(['HARANDSCREENSHOTINFO'],`${seq_no}-BROWSER_LAUNCHED_AND_NEW_TAB_OPENING-${url}-${pid}`)
-		const page = await browser.newPage()
-		request.log(['HARANDSCREENSHOTINFO'],`${seq_no}-NEW_TAB_OPENED_AND_SETTING_EXTRA_HEADERS-${url}-${pid}`)
-		await page.setExtraHTTPHeaders({
-			'Authorization': 'Basic ' + Buffer.from(`${username}:${password}`).toString('base64')
+		request.log([task],`${seq_no}-BROWSER_LAUNCHED_WITH_NEW_PAGE-${url}-${pid}`)
+		page = await setViewPortAndHeader(page, {username:username, password:password})
+		request.log([task],`${seq_no}-APPLIED_VIEW_PORT_AND_HEADER-${url}-${pid}`)
+		await page.goto(url, pageGotoOptions)
+		request.log([task],`${seq_no}-URL_LOADED-${url}-${pid}`)
+		const pdf = await page.pdf({
+			printBackground: true,
+			width: 800,
+			height: 650
 		})
-		request.log(['HARANDSCREENSHOTINFO'],`${seq_no}-EXTRA_HEADERS_WERE_SET_UP_AND_SETTING_VIEWPORT-${url}-${pid}`)
-		await page.setViewport({width: 1366, height: 768})
-		request.log(['HARANDSCREENSHOTINFO'],`${seq_no}-WEBPAGE_LOADING_AND_HAR_STARTED-${url}-${pid}`)
-	const response = await page.goto(url, {
-		waitUntil: 'networkidle0',
-		timeout: 40000
-	})
-	const pdf = await page.pdf({
-		format: 'A4',
-		printBackground: true,
-		margin: {top: '1cm', right: '1cm', bottom: '1cm', left: '1cm'}
-	});
-	return {
-		pdf: Buffer.from(pdf).toString('base64')
+		request.log([task],`${seq_no}-PDF_CAPTURED-${url}-${pid}`)
+		return {
+			pdf: Buffer.from(pdf).toString('base64')
+		}
+	} catch (err) {
+		request.log(['CAPTUREPDF_ERROR'], `${seq_no}-CAPTURE_PDF_FAILED-${url}-${pid}-${err.message}`)
+		throw err
+	} finally {
+		if (browser){
+			try {
+				await browser.close()
+				request.log([task],`${seq_no}-BROWSER_CLOSED-${url}-${pid}`)
+			} catch (err){
+				request.log(['CAPTUREPDF_ERROR'],`${seq_no}-BROWSER_CLOSING_ERRORS-${url}-${pid}`)
+			}
+		} else {
+			request.log(['CATUREPDF_INFO'],`${seq_no}-NO_BROWSER-${url}-${pid}`)
+		}
 	}
-	//}
 }
