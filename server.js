@@ -17,14 +17,14 @@ server.route({
 	handler: async(request, h) => {
 		try {
 			const data = request.payload
-			let har_and_screenshot = await Puppeteer.capturePdf(
+			let encoded_pdf = await Puppeteer.capturePdf(
 				data.url,
 				data.proxy,
 				data.username,
 				data.password,
 				request
 			)
-			return (JSON.stringify(har_and_screenshot))
+			return (JSON.stringify(encoded_pdf))
 		} catch (err) {
 			return h.response(err.message).code(422)
 		}
