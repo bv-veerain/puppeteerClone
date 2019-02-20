@@ -26,7 +26,7 @@ const launchChromeWithNewPage = async (args) => {
 
 const setViewPortAndHeader = async (page, options={}) => {
 	await page.setExtraHTTPHeaders({
-		'Authorization': `Basic  + ${Buffer.from(`${options.username}:${options.password}`).toString('base64')}`
+		'Authorization': 'Basic ' + Buffer.from(`${options.username}:${options.password}`).toString('base64')
 	})
 	await page.setViewport({
 		width: options.width || 1366,
@@ -122,8 +122,14 @@ exports.capturePdf = async (url, proxy_server, username, password, request) => {
 		request.log([task],`${seq_no}-URL_LOADED-${url}-${pid}`)
 		const pdf = await page.pdf({
 			printBackground: true,
-			width: 800,
-			height: 650
+			width: 1100,
+			height: 1027,
+			margin: {
+				top: 10,
+				right: 100,
+				bottom: 10,
+				left: 100
+			}
 		})
 		request.log([task],`${seq_no}-PDF_CAPTURED-${url}-${pid}`)
 		return {
