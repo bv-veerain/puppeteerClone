@@ -13,6 +13,26 @@ const server = Hapi.server({
 
 server.route({
 	method: 'POST',
+	path: '/capture_pdf',
+	handler: async(request, h) => {
+		try {
+			const data = request.payload
+			let encoded_pdf = await Puppeteer.capturePdf(
+				data.url,
+				data.proxy,
+				data.username,
+				data.password,
+				request
+			)
+			return (JSON.stringify(encoded_pdf))
+		} catch (err) {
+			return h.response(err.message).code(422)
+		}
+	}
+})
+
+server.route({
+	method: 'POST',
 	path: '/har_and_screenshot',
 	handler: async(request, h) => {
 		try {
