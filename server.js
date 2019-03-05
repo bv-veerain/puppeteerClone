@@ -52,6 +52,20 @@ server.route({
 })
 
 server.route({
+	method: 'GET',
+	path: '/load_from_src',
+	handler: async(request, h) => {
+		try {
+			let res = await Puppeteer.loadFromSrc(request.query.src)
+			return (JSON.stringify(res))
+		} catch (err) {
+			request.log(['LOAD_LOCAL_PAGE_ERROR'], err.message)
+			return h.response(err.message).code(422)
+		}
+	}
+})
+
+server.route({
 	method: 'POST',
 	path: '/yslow_report',
 	config: {

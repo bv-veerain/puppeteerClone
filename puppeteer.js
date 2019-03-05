@@ -151,3 +151,39 @@ exports.capturePdf = async (url, proxy_server, username, password, request) => {
 		}
 	}
 }
+
+exports.loadFromSrc = async (src) => {
+	let browser, pid
+	let navigated_urls = []
+	let task = 'LOAD_FROM_SRC'
+	let seq_no = genRandomSequence()
+	try {
+		request.log([task],`${seq_no}-BROWSER_LAUNCHING`)
+		let res = await launchChromeWithNewPage([])
+		browser = res.browser
+		let page = res.page
+		pid = browser.process().pid
+		request.log([task],`${seq_no}-BROWSER_LAUNCHED_WITH_NEW_PAGE-${pid}`)
+		page.on('response', response => {
+			let resp_code = response.status()
+			if ((resp_code >= 300) && (resp_code <= 399)) {
+				navigated_urls.push(Buffer.from(response.headers()['location']).toString('base64'))
+			}
+		})
+		//XNOTE Give it a proper location.
+		await page.goto('file:///tmp/a.html');
+		await page.waitFor(5000); //wait for 5 seconds.
+		let new_source = Buffer.from(await page.content()).toString('base64');
+		request.log([task],`${seq_no}-SOURCE_LOADED-${pid}`)
+		return {
+			navigated_urls: navigated_urls,
+			new_source: new_source
+		}
+	} catch (err) {
+		request.log(['SOURCE_LOAD_ERROR'], `${seq_no}-SOURCE_LOAD_FAILED-${pid}-${err.message}`)
+		throw err
+	} finally {
+		if (browser)
+			await browser.close()
+	}
+}
