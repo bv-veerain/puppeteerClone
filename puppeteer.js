@@ -154,7 +154,7 @@ exports.capturePdf = async (url, proxy_server, username, password, request) => {
 
 exports.loadFromSrc = async (src, request) => {
 	const fs = require('fs');
-  const path = require('path');
+	const path = require('path');
 	let browser, pid
 	let navigated_urls = []
 	let task = 'LOAD_FROM_SRC'
@@ -181,7 +181,7 @@ exports.loadFromSrc = async (src, request) => {
 			}
 		})
 		await page.goto('file://' + local_src_file);
-		await page.waitFor(5000); //wait for 5 seconds.
+		await page.waitFor(20000); //wait for 20 seconds.
 		let new_source = Buffer.from(await page.content()).toString('base64');
 		request.log([task],`${seq_no}-SOURCE_LOADED-${pid}`)
 		return {

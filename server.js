@@ -59,7 +59,7 @@ server.route({
 			let res = await Puppeteer.loadFromSrc(request.payload.src, request)
 			return (JSON.stringify(res))
 		} catch (err) {
-			request.log(['LOAD_LOCAL_PAGE_ERROR'], err.message)
+			request.log(['LOAD_FROM_SRC_ERROR'], err.message)
 			return h.response(err.message).code(422)
 		}
 	}
