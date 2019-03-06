@@ -53,6 +53,20 @@ server.route({
 
 server.route({
 	method: 'POST',
+	path: '/load_from_src',
+	handler: async(request, h) => {
+		try {
+			let res = await Puppeteer.loadFromSrc(request.payload.src, request)
+			return (JSON.stringify(res))
+		} catch (err) {
+			request.log(['LOAD_FROM_SRC_ERROR'], err.message)
+			return h.response(err.message).code(422)
+		}
+	}
+})
+
+server.route({
+	method: 'POST',
 	path: '/yslow_report',
 	config: {
 		payload: {maxBytes: 1000 * 1000 * 25,

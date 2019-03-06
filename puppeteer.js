@@ -151,3 +151,52 @@ exports.capturePdf = async (url, proxy_server, username, password, request) => {
 		}
 	}
 }
+
+exports.loadFromSrc = async (src, request) => {
+	const fs = require('fs');
+	const path = require('path');
+	let browser, pid
+	let navigated_urls = []
+	let task = 'LOAD_FROM_SRC'
+	let seq_no = genRandomSequence()
+	let dir = path.join(__dirname, 'tmp')
+	let local_src_file = `${dir}/tmpfile-${seq_no}-local-source.html`
+
+	try {
+		if (!fs.existsSync(dir)){
+			fs.mkdirSync(dir);
+		}
+		fs.writeFileSync(local_src_file, src, {mode: 0o600})
+
+		request.log([task],`${seq_no}-BROWSER_LAUNCHING`)
+		let res = await launchChromeWithNewPage([])
+		browser = res.browser
+		let page = res.page
+		pid = browser.process().pid
+		request.log([task],`${seq_no}-BROWSER_LAUNCHED_WITH_NEW_PAGE-${pid}`)
+		page.on('response', response => {
+			let resp_code = response.status()
+			if ((resp_code >= 300) && (resp_code <= 399)) {
+				navigated_urls.push(Buffer.from(response.headers()['location']).toString('base64'))
+			}
+		})
+		await page.goto('file://' + local_src_file);
+		await page.waitFor(20000); //wait for 20 seconds.
+		let new_source = Buffer.from(await page.content()).toString('base64');
+		request.log([task],`${seq_no}-SOURCE_LOADED-${pid}`)
+		return {
+			navigated_urls: navigated_urls,
+			new_source: new_source
+		}
+	} catch (err) {
+		request.log(['SOURCE_LOAD_ERROR'], `${seq_no}-SOURCE_LOAD_FAILED-${pid}-${err.message}`)
+		throw err
+	} finally {
+		if (browser) {
+			await browser.close()
+		}
+		if (fs.existsSync(local_src_file)) {
+			fs.unlinkSync(local_src_file)
+		}
+	}
+}
