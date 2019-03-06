@@ -196,7 +196,7 @@ exports.loadFromSrc = async (src, request) => {
 			await browser.close()
 		}
 		if (fs.existsSync(local_src_file)) {
-			//fs.unlinkSync(local_src_file)
+			fs.unlinkSync(local_src_file)
 		}
 	}
 }
