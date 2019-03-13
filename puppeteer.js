@@ -153,10 +153,12 @@ exports.capturePdf = async (url, proxy_server, username, password, request) => {
 }
 
 exports.loadFromSrc = async (src, request) => {
-	const fs = require('fs');
-	const path = require('path');
+	const fs = require('fs')
+	const path = require('path')
 	let browser, pid
 	let navigated_urls = []
+	let new_tab_urls = []
+	let all_requested_urls = []
 	let task = 'LOAD_FROM_SRC'
 	let seq_no = genRandomSequence()
 	let dir = path.join(__dirname, 'tmp')
@@ -164,7 +166,7 @@ exports.loadFromSrc = async (src, request) => {
 
 	try {
 		if (!fs.existsSync(dir)){
-			fs.mkdirSync(dir);
+			fs.mkdirSync(dir)
 		}
 		fs.writeFileSync(local_src_file, src, {mode: 0o600})
 
@@ -174,18 +176,31 @@ exports.loadFromSrc = async (src, request) => {
 		let page = res.page
 		pid = browser.process().pid
 		request.log([task],`${seq_no}-BROWSER_LAUNCHED_WITH_NEW_PAGE-${pid}`)
+		browser.on('targetcreated', async target => {
+			if (target.url() !== 'about:blank') {
+				new_tab_urls.push(Buffer.from(target.url()).toString('base64'))
+			}
+		})
+		page.on('request', request => {
+			all_requested_urls.push(Buffer.from(request.url()).toString('base64'))
+			request.continue()
+		})
 		page.on('response', response => {
 			let resp_code = response.status()
 			if ((resp_code >= 300) && (resp_code <= 399)) {
 				navigated_urls.push(Buffer.from(response.headers()['location']).toString('base64'))
 			}
 		})
-		await page.goto('file://' + local_src_file);
-		await page.waitFor(20000); //wait for 20 seconds.
-		let new_source = Buffer.from(await page.content()).toString('base64');
+		await page.goto('file://' + local_src_file)
+		await page.waitFor(10000) //wait for 10 seconds.
+		await page.mouse.click(1000, 1000)
+		await page.waitFor(1000) //wait for 1 seconds.
+		let new_source = Buffer.from(await page.content()).toString('base64')
 		request.log([task],`${seq_no}-SOURCE_LOADED-${pid}`)
 		return {
 			navigated_urls: navigated_urls,
+			all_requested_urls: all_requested_urls,
+			new_tab_urls: new_tab_urls,
 			new_source: new_source
 		}
 	} catch (err) {
