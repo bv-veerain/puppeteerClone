@@ -162,7 +162,8 @@ exports.loadFromSrc = async (src, request) => {
 	let task = 'LOAD_FROM_SRC'
 	let seq_no = genRandomSequence()
 	let dir = path.join(__dirname, 'local_html')
-	let local_src_file = `${dir}/tmpfile-${seq_no}-local-source.html`
+	let src_fname = `tmpfile-${seq_no}-local-source.html`
+	let local_src_file = `${dir}/${src_fname}`
 
 	try {
 		if (!fs.existsSync(dir)){
@@ -191,7 +192,7 @@ exports.loadFromSrc = async (src, request) => {
 				navigated_urls.push(Buffer.from(response.headers()['location']).toString('base64'))
 			}
 		})
-		await page.goto('http://localhost:9090' + local_src_file)
+		await page.goto('http://localhost:9090/' + src_fname)
 		await page.waitFor(3000) //wait for 3 seconds.
 		await page.mouse.click(1000, 1000)
 		await page.waitFor(1000) //wait for 1 seconds.
