@@ -161,7 +161,7 @@ exports.loadFromSrc = async (src, request) => {
 	let all_requested_urls = []
 	let task = 'LOAD_FROM_SRC'
 	let seq_no = genRandomSequence()
-	let dir = path.join(__dirname, 'tmp')
+	let dir = path.join(__dirname, 'local_html')
 	let local_src_file = `${dir}/tmpfile-${seq_no}-local-source.html`
 
 	try {
@@ -191,8 +191,8 @@ exports.loadFromSrc = async (src, request) => {
 				navigated_urls.push(Buffer.from(response.headers()['location']).toString('base64'))
 			}
 		})
-		await page.goto('file://' + local_src_file)
-		await page.waitFor(10000) //wait for 10 seconds.
+		await page.goto('http://localhost:9090' + local_src_file)
+		await page.waitFor(3000) //wait for 3 seconds.
 		await page.mouse.click(1000, 1000)
 		await page.waitFor(1000) //wait for 1 seconds.
 		let new_source = Buffer.from(await page.content()).toString('base64')
