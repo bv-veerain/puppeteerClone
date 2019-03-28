@@ -152,24 +152,24 @@ exports.capturePdf = async (url, proxy_server, username, password, request) => {
 	}
 }
 
-exports.loadFromSrc = async (src, request) => {
+exports.loadPage = async (page_src, request) => {
 	const fs = require('fs')
 	const path = require('path')
 	let browser, pid
-	let navigated_urls = []
 	let new_tab_urls = []
-	let all_requested_urls = []
-	let task = 'LOAD_FROM_SRC'
+	let requests = []
+	let responses = {}
+	let task = 'LOAD_PAGE'
 	let seq_no = genRandomSequence()
 	let dir = path.join(__dirname, 'local_html')
-	let src_fname = `tmpfile-${seq_no}-local-source.html`
-	let local_src_file = `${dir}/${src_fname}`
+	let page_src_fname = `page-source-${seq_no}.html`
+	let page_src_fpath = `${dir}/${page_src_fname}`
 
 	try {
 		if (!fs.existsSync(dir)){
 			fs.mkdirSync(dir)
 		}
-		fs.writeFileSync(local_src_file, src, {mode: 0o600})
+		fs.writeFileSync(page_src_fpath, page_src, {mode: 0o644})
 
 		request.log([task],`${seq_no}-BROWSER_LAUNCHING`)
 		let res = await launchChromeWithNewPage([])
@@ -183,26 +183,29 @@ exports.loadFromSrc = async (src, request) => {
 			}
 		})
 		page.on('request', request => {
-			all_requested_urls.push(Buffer.from(request.url()).toString('base64'))
+			requests.push(Buffer.from(request.url()).toString('base64'))
 			request.continue()
 		})
 		page.on('response', response => {
+			let resp = {}
 			let resp_code = response.status()
+			resp["code"] = resp_code
 			if ((resp_code >= 300) && (resp_code <= 399)) {
-				navigated_urls.push(Buffer.from(response.headers()['location']).toString('base64'))
+				resp["location"] = Buffer.from(response.headers()['location']).toString('base64')
 			}
+			responses[Buffer.from(response.url()).toString('base64')] = resp
 		})
-		await page.goto('http://localhost:9090/' + src_fname)
+		await page.goto('http://localhost:9090/' + page_src_fname)
 		await page.waitFor(3000) //wait for 3 seconds.
 		await page.mouse.click(1000, 1000)
 		await page.waitFor(1000) //wait for 1 seconds.
-		let new_source = Buffer.from(await page.content()).toString('base64')
+		let new_page_src = Buffer.from(await page.content()).toString('base64')
 		request.log([task],`${seq_no}-SOURCE_LOADED-${pid}`)
 		return {
-			navigated_urls: navigated_urls,
-			all_requested_urls: all_requested_urls,
+			requests: requests,
+			responses: responses,
 			new_tab_urls: new_tab_urls,
-			new_source: new_source
+			new_page_src: new_page_src
 		}
 	} catch (err) {
 		request.log(['SOURCE_LOAD_ERROR'], `${seq_no}-SOURCE_LOAD_FAILED-${pid}-${err.message}`)
@@ -211,8 +214,8 @@ exports.loadFromSrc = async (src, request) => {
 		if (browser) {
 			await browser.close()
 		}
-		if (fs.existsSync(local_src_file)) {
-			fs.unlinkSync(local_src_file)
+		if (fs.existsSync(page_src_fpath)) {
+			fs.unlinkSync(page_src_fpath)
 		}
 	}
 }
