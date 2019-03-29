@@ -53,13 +53,13 @@ server.route({
 
 server.route({
 	method: 'POST',
-	path: '/load_from_src',
+	path: '/load_page',
 	handler: async(request, h) => {
 		try {
-			let res = await Puppeteer.loadFromSrc(request.payload.src, request)
+			let res = await Puppeteer.loadPage(request.payload.page_src, request)
 			return (JSON.stringify(res))
 		} catch (err) {
-			request.log(['LOAD_FROM_SRC_ERROR'], err.message)
+			request.log(['LOAD_PAGE_ERROR'], err.message)
 			return h.response(err.message).code(422)
 		}
 	}
