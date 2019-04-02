@@ -3,10 +3,11 @@ const DiffMatchPatch = require('./diff_match_patch.js')
 const diff_match_patch = DiffMatchPatch.diff_match_patch
 
 exports.calculate_diff_arr = (params) => {
-	let results = []
+	let results = {}
 	let data = JSON.parse(params.data|| [])
 	let timeout = params.timeout
-	data.forEach(row => {
+	Object.keys(data).forEach(pkey => {
+		let row = data[pkey]
 		let oldRow = row['old'] || {}
 		let newRow = row['new'] || {}
 		let keys = Object.keys(oldRow)
@@ -16,15 +17,16 @@ exports.calculate_diff_arr = (params) => {
 		let info = {}
 		keys.forEach(key => {
 			let dmp = new diff_match_patch();
-			let newData = String(newRow[key]) || ""
-			let oldData = String(oldRow[key]) || ""
+			let newData = String(newRow[key] || "")
+			let oldData = String(oldRow[key] || "")
 			let diff = dmp.diff_main(oldData, newData)
 			let ld = dmp.diff_levenshtein(diff)
 			dmp.diff_cleanupSemantic(diff)
 
 			info[key] = {diff: diff, distance: ld}
 		})
-		results.push(info)
+		info.type = row.type
+		results[pkey] = info
 	})
 	return results
 }
