@@ -5,6 +5,7 @@ const Puppeteer = require('./puppeteer.js')
 const Yslow = require('./yslow.js')
 const Esprima = require('esprima')
 const fs = require('fs')
+const Diff = require('./diff.js')
 
 const server = Hapi.server({
 	port: 8080,
@@ -107,6 +108,21 @@ server.route({
 			return JSON.stringify(tokens)
 		} catch (err) {
 			request.log(['TOKENIZER_ERROR'], err.message)
+			return h.response(err.message).code(422)
+		}
+	}
+})
+
+server.route({
+	method: 'POST',
+	path: '/calculate_diff',
+	handler: (request, h) => {
+		try {
+			const params = request.payload
+			let result = Diff.calculate_diff_arr(params)
+			return JSON.stringify(result)
+		} catch (err) {
+			request.log(['DIFF_ERROR'], err.message)
 			return h.response(err.message).code(422)
 		}
 	}
