@@ -202,6 +202,7 @@ exports.loadPage = async (page_src, request) => {
 		let new_page_src = Buffer.from(await page.content()).toString('base64')
 		request.log([task],`${seq_no}-SOURCE_LOADED-${pid}`)
 		return {
+			page_url: Buffer.from(page.url()).toString('base64'),
 			requests: requests,
 			responses: responses,
 			new_tab_urls: new_tab_urls,
