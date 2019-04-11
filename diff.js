@@ -2,7 +2,7 @@
 const DiffMatchPatch = require('./diff_match_patch.js')
 const diff_match_patch = DiffMatchPatch.diff_match_patch
 
-exports.calculate_diff_arr = (params) => {
+exports.calculate_diff_hash = (params) => {
 	let results = {}
 	let data = JSON.parse(params.data|| [])
 	let timeout = params.timeout

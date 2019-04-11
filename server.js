@@ -119,7 +119,7 @@ server.route({
 	handler: (request, h) => {
 		try {
 			const params = request.payload
-			let result = Diff.calculate_diff_arr(params)
+			let result = Diff.calculate_diff_hash(params)
 			return JSON.stringify(result)
 		} catch (err) {
 			request.log(['DIFF_ERROR'], err.message)
