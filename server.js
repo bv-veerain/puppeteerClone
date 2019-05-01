@@ -17,11 +17,20 @@ server.route({
 	handler: async(request, h) => {
 		try {
 			const data = request.payload
+			// constructing options directly through data (and not nested data object)
+			// to avoid query-params parsing here.
+			let options = {
+				left: data.left,
+				right: data.right,
+				top: data.top,
+				bottom: data.bottom
+			}
 			let encoded_pdf = await Puppeteer.capturePdf(
 				data.url,
 				data.proxy,
 				data.username,
 				data.password,
+				options,
 				request
 			)
 			return (JSON.stringify(encoded_pdf))
