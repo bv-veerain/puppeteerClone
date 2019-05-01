@@ -104,7 +104,7 @@ exports.generateHarAndScreenshot = async (url, proxy_server, username, password,
 	}
 }
 
-exports.capturePdf = async (url, proxy_server, username, password, request) => {
+exports.capturePdf = async (url, proxy_server, username, password, options, request) => {
 	let browser, pid
 	let task = 'CAPTUREPDF'
 	let args = proxy_server ? [ `--proxy-server=${proxy_server}` ] : []
@@ -125,10 +125,10 @@ exports.capturePdf = async (url, proxy_server, username, password, request) => {
 			width: 1100,
 			height: 1027,
 			margin: {
-				top: 10,
-				right: 100,
-				bottom: 10,
-				left: 100
+				top: options.top || 10,
+				right: options.right || 100,
+				bottom: options.bottom || 10,
+				left: options.left || 100
 			}
 		})
 		request.log([task],`${seq_no}-PDF_CAPTURED-${url}-${pid}`)
