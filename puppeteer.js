@@ -183,17 +183,21 @@ exports.loadPage = async (page_src, request) => {
 			}
 		})
 		page.on('request', request => {
-			requests.push(Buffer.from(request.url()).toString('base64'))
+			if (!request.url().match(/^data:/)) {
+				requests.push(Buffer.from(request.url()).toString('base64'))
+			}
 			request.continue()
 		})
 		page.on('response', response => {
-			let resp = {}
-			let resp_code = response.status()
-			resp["code"] = resp_code
-			if ((resp_code >= 300) && (resp_code <= 399)) {
-				resp["location"] = Buffer.from(response.headers()['location']).toString('base64')
+			if (!request.url().match(/^data:/)) {
+				let resp = {}
+				let resp_code = response.status()
+				resp["code"] = resp_code
+				if ((resp_code >= 300) && (resp_code <= 399)) {
+					resp["location"] = Buffer.from(response.headers()['location']).toString('base64')
+				}
+				responses[Buffer.from(response.url()).toString('base64')] = resp
 			}
-			responses[Buffer.from(response.url()).toString('base64')] = resp
 		})
 		await page.goto('http://localhost:9090/' + page_src_fname)
 		await page.waitFor(3000) //wait for 3 seconds.
