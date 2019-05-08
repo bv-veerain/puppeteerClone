@@ -54,6 +54,11 @@ server.route({
 server.route({
 	method: 'POST',
 	path: '/load_page',
+	config: {
+		payload: {
+			maxBytes: 1024 * 1024 * 25
+		}
+	},
 	handler: async(request, h) => {
 		try {
 			let res = await Puppeteer.loadPage(request.payload.page_src, request)
@@ -69,10 +74,12 @@ server.route({
 	method: 'POST',
 	path: '/yslow_report',
 	config: {
-		payload: {maxBytes: 1000 * 1000 * 25,
+		payload: {
+			maxBytes: 1024 * 1024 * 25,
 			parse: true,
 			output: 'file',
-			uploads: __dirname + '/yslow_files/'}
+			uploads: __dirname + '/yslow_files/'
+		}
 	},
 	handler: async (request, h) => {
 		var data
@@ -97,7 +104,7 @@ server.route({
 	path:'/tokenize',
 	config: {
 		payload: {
-			maxBytes: 1000 * 1000 * 25
+			maxBytes: 1024 * 1024 * 25
 		}
 	},
 	handler: (request, h) => {
@@ -139,7 +146,7 @@ const registerAndStart = async () => {
 
 registerAndStart()
 
-process.setMaxListeners(1000)
+process.setMaxListeners(8192)
 
 process.on('unhandledRejection', (err) => {
 	server.log(['UNHANDLEDREJECTION'], err.message)
