@@ -178,7 +178,8 @@ exports.loadPage = async (page_src, request) => {
 		pid = browser.process().pid
 		request.log([task],`${seq_no}-BROWSER_LAUNCHED_WITH_NEW_PAGE-${pid}`)
 		browser.on('targetcreated', async target => {
-			if (target.url() !== 'about:blank') {
+			let new_page = await target.page()
+			if (new_page && target.url() !== 'about:blank') {
 				new_tab_urls.push(Buffer.from(target.url()).toString('base64'))
 			}
 		})
