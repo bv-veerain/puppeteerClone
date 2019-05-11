@@ -190,7 +190,7 @@ exports.loadPage = async (page_src, request) => {
 			request.continue()
 		})
 		page.on('response', response => {
-			if (!request.url().match(/^data:/)) {
+			if (!response.url().match(/^data:/)) {
 				let resp = {}
 				let resp_code = response.status()
 				resp["code"] = resp_code
