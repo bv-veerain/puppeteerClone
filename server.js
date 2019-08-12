@@ -6,7 +6,7 @@ const Yslow = require('./yslow.js')
 const Esprima = require('esprima')
 const fs = require('fs')
 const Diff = require('./diff.js')
-
+const ScreenshotDiff = require('./screenshotdiff.js')
 const server = Hapi.server({
 	port: 8080,
 	host: '127.0.0.1'
@@ -35,6 +35,24 @@ server.route({
 				request
 			)
 			return (JSON.stringify(encoded_pdf))
+		} catch (err) {
+			return h.response(err.message).code(422)
+		}
+	}
+})
+
+server.route({
+	method: 'POST',
+	path: '/diff_coordinates_and_change',
+	handler: async(request, h) => {
+		try {
+			const data = request.payload
+			let coordinates_and_percentage_change = await ScreenshotDiff.diffCoordinatesAndChange(
+				data.new_screenshot_url,
+				data.old_screenshot_url,
+				request
+			)
+			return (JSON.stringify(coordinates_and_percentage_change))
 		} catch (err) {
 			return h.response(err.message).code(422)
 		}
