@@ -48,8 +48,8 @@ server.route({
 		try {
 			const data = request.payload
 			let coordinates_and_percentage_change = await ScreenshotDiff.diffCoordinatesAndChange(
-				data.new_screenshot_url,
-				data.old_screenshot_url,
+				data.screenshot_url,
+				data.target_screenshot_url,
 				request
 			)
 			return (JSON.stringify(coordinates_and_percentage_change))
