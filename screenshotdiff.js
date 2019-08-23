@@ -5,16 +5,16 @@ const fs = require('fs')
 const compareImages = require("resemblejs/compareImages")
 const Jimp = require('jimp')
 
-const readScreenshots = async (screenshotUrl, targetScreenshotUrl) => {
-	let screenshot, targetScreenshot
+const getScreenshotsBufs = async (screenshotUrl, targetScreenshotUrl) => {
+	let screenshotBuf, targetScreenshotBuf
 	await axios.all([getScreenshot(screenshotUrl), getScreenshot(targetScreenshotUrl)])
-    .then(axios.spread(function (screenshotResp, targetScreenshotResp) {
-	    screenshot = cv.imdecode(screenshotResp.data).bgrToGray()
-			targetScreenshot = cv.imdecode(targetScreenshotResp.data).bgrToGray()
+		.then(axios.spread(function (screenshotResp, targetScreenshotResp) {
+			screenshotBuf = screenshotResp.data
+			targetScreenshotBuf = targetScreenshotResp.data
 		}))
 	return {
-		screenshot: screenshot,
-		targetScreenshot: targetScreenshot
+		screenshotBuf: screenshotBuf,
+		targetScreenshotBuf: targetScreenshotBuf
 	}
 }
 
@@ -22,13 +22,8 @@ const getScreenshot = (url) => {
 	return axios.get(url, {responseType: 'arraybuffer'})
 }
 
-const getDiffImage = async (screenshotUrl, targetScreenshotUrl) => {
-	let diffImage, diffImageBuf, screenshotBuf, targetScreenshotBuf, diffImageData
-	await axios.all([getScreenshot(screenshotUrl), getScreenshot(targetScreenshotUrl)])
-		.then(axios.spread(function (screenshotResp, targetScreenshotResp) {
-			screenshotBuf = screenshotResp.data
-			targetScreenshotBuf = targetScreenshotResp.data
-		}))
+const getDiffImage = async (screenshotBuf, targetScreenshotBuf) => {
+	let diffImage, diffImageBuf
 	const options = {
 		output: {
 			errorColor: {
@@ -44,8 +39,8 @@ const getDiffImage = async (screenshotUrl, targetScreenshotUrl) => {
 		},
 		scaleToSameSize: false,
 	}
-	diffImageData = await compareImages(screenshotBuf, targetScreenshotBuf, options);
-	diffImage = await Jimp.read(diffImageData.getBuffer())
+	diffImageBuf = await compareImages(screenshotBuf, targetScreenshotBuf, options);
+	diffImage = await Jimp.read(diffImageBuf.getBuffer())
 	diffImage.background(0xFFFFFFFF);
 	diffImageBuf = await diffImage.getBufferAsync(Jimp.MIME_JPEG)
 	return diffImageBuf
@@ -65,11 +60,11 @@ const getBitmapImage = (screenshot, targetScreenshot) => {
 			}
 		}
 	}
-return new cv.Mat(bitmapPixels, cv.CV_8U)	
+	return new cv.Mat(bitmapPixels, cv.CV_8U)
 }
 
 const genRandomSequence = () => {
-  return Math.floor(Math.random() *100000000000000)
+	return Math.floor(Math.random() *100000000000000)
 }
 
 const calPercentageDiff = (diffArea, bitmapWidth, bitmapHeight) => {
@@ -77,17 +72,19 @@ const calPercentageDiff = (diffArea, bitmapWidth, bitmapHeight) => {
 }
 
 exports.diffCoordinatesAndChange = async (screenshotUrl, targetScreenshotUrl, request) => {
-	let screenshot, targetScreenshot, bitmapImage, kernel, cannyImage, morphedImage, contours, coordinates, rect, coordinate, percentageDiff
+	let screenshot, targetScreenshot, bitmapImage, kernel, cannyImage, morphedImage, contours, coordinates, percentageDiff, screenshotBuf, targetScreenshotBuf
 	let task = "SCREENSHOTDIFF"
 	let seq_no = genRandomSequence()
 	try {
 		request.log([task],`${seq_no}- Reading Screenshots- screenshotURl- ${screenshotUrl}, targetScreenshotUrl ${targetScreenshotUrl}`)
-		let resp = await readScreenshots(screenshotUrl, targetScreenshotUrl)
-		screenshot = resp.screenshot
-		targetScreenshot = resp.targetScreenshot
-		if (screenshot == null || targetScreenshot == null) {
+		let resp = await getScreenshotsBufs(screenshotUrl, targetScreenshotUrl)
+		screenshotBuf = resp.screenshotBuf
+		targetScreenshotBuf = resp.targetScreenshotBuf
+		if (screenshotBuf == null || targetScreenshotBuf == null) {
 			throw Error("Screenshot Read Error")
 		}
+		screenshot = cv.imdecode(screenshotBuf).bgrToGray()
+		targetScreenshot = cv.imdecode(targetScreenshotBuf).bgrToGray()
 		request.log([task],`${seq_no}- Getting Bitmap Image`)
 		bitmapImage = await getBitmapImage(screenshot, targetScreenshot)
 		kernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(20, 20), new cv.Point(-1,-1))
@@ -99,14 +96,14 @@ exports.diffCoordinatesAndChange = async (screenshotUrl, targetScreenshotUrl, re
 		coordinates = new Array(contours.length)
 		let diffArea = 0
 		for (let iter=0; iter < contours.length; iter++) {
-			rect  = contours[iter].boundingRect()
+			let rect  = contours[iter].boundingRect()
 			diffArea += rect.width * rect.height
-			coordinate = new Array(rect.x, rect.y, rect.x + rect.width, rect.y + rect.height)
+			let coordinate = new Array(rect.x, rect.y, rect.x + rect.width, rect.y + rect.height)
 			coordinates[iter] = coordinate
 		}
 		percentageDiff = calPercentageDiff(diffArea, bitmapImage.cols, bitmapImage.rows)
-	  request.log([task],`${seq_no}- Getting DiffImage`)
-		let diffImage = await getDiffImage(screenshotUrl, targetScreenshotUrl)
+		request.log([task],`${seq_no}- Getting DiffImage`)
+		let diffImage = await getDiffImage(screenshotBuf, targetScreenshotBuf)
 		request.log([task],`${seq_no}- Task Completed`)
 		return {
 			diffImage: diffImage.toString('base64'),
