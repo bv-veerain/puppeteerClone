@@ -1,7 +1,6 @@
 'use strict'
 const cv = require('opencv4nodejs')
 const axios = require('axios')
-const fs = require('fs')
 const compareImages = require("resemblejs/compareImages")
 const Jimp = require('jimp')
 
@@ -71,7 +70,7 @@ const calPercentageDiff = (diffArea, bitmapWidth, bitmapHeight) => {
 	return (diffArea / (bitmapWidth * bitmapHeight)) * 100
 }
 
-exports.diffCoordinatesAndChange = async (screenshotUrl, targetScreenshotUrl, request) => {
+exports.calculateDiff = async (screenshotUrl, targetScreenshotUrl, request) => {
 	let screenshot, targetScreenshot, bitmapImage, kernel, cannyImage, morphedImage, contours, coordinates, percentageDiff, screenshotBuf, targetScreenshotBuf
 	let task = "SCREENSHOTDIFF"
 	let seq_no = genRandomSequence()
