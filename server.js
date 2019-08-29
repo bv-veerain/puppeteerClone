@@ -2,11 +2,9 @@
 
 const Hapi = require('hapi')
 const Puppeteer = require('./puppeteer.js')
-const Yslow = require('./yslow.js')
 const Esprima = require('esprima')
-const fs = require('fs')
 const Diff = require('./diff.js')
-
+const ScreenshotDiff = require('./screenshotdiff.js')
 const server = Hapi.server({
 	port: 8080,
 	host: '127.0.0.1'
@@ -35,6 +33,24 @@ server.route({
 				request
 			)
 			return (JSON.stringify(encoded_pdf))
+		} catch (err) {
+			return h.response(err.message).code(422)
+		}
+	}
+})
+
+server.route({
+	method: 'POST',
+	path: '/screenshot_diff',
+	handler: async(request, h) => {
+		try {
+			const data = request.payload
+			let resp = await ScreenshotDiff.calculateDiff(
+				data.screenshot_url,
+				data.target_screenshot_url,
+				request
+			)
+			return (JSON.stringify(resp))
 		} catch (err) {
 			return h.response(err.message).code(422)
 		}
@@ -76,35 +92,6 @@ server.route({
 		} catch (err) {
 			request.log(['LOAD_PAGE_ERROR'], err.message)
 			return h.response(err.message).code(422)
-		}
-	}
-})
-
-server.route({
-	method: 'POST',
-	path: '/yslow_report',
-	config: {
-		payload: {
-			maxBytes: 1024 * 1024 * 25,
-			parse: true,
-			output: 'file',
-			uploads: __dirname + '/yslow_files/'
-		}
-	},
-	handler: async (request, h) => {
-		var data
-		try {
-			data = request.payload
-			return await Yslow.generateReport(data.upload.path)
-		} catch (err) {
-			request.log(['YSLOWERROR'], err.message)
-			return h.response(err.message).code(422)
-		} finally {
-			if(data.upload.path) {
-				fs.unlinkSync(data.upload.path)
-			} else {
-				request.log(['YSLOWERROR'], 'FILE DOESNOT EXIST')
-			}
 		}
 	}
 })
