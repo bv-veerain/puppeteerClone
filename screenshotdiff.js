@@ -52,9 +52,11 @@ const getBitmapImage = (screenshot, targetScreenshot) => {
 	intersectingRows = Math.min(screenshot.rows, targetScreenshot.rows)
 	intersectingCols = Math.min(screenshot.cols, targetScreenshot.cols)
 	bitmapPixels = Array(bitmapRows).fill().map(() => Array(bitmapCols).fill(255))
-	for( let row = 0; row < intersectingRows ; row++) {
-		for ( let col = 0 ; col < intersectingCols; col++) {
-			if (screenshot.at(row, col) == targetScreenshot.at(row, col)) {
+	let screenshotPixels = new Uint8Array(screenshot.getData())
+	let targetScreensohtPixels = new Uint8Array(targetScreenshot.getData())
+	for( let row = 0; row < intersectingRows; row++) {
+		for( let col = 0; col < intersectingCols; col++) {
+			if (screenshotPixels[row * intersectingCols + col] == targetScreensohtPixels[row * intersectingCols + col]) {
 				bitmapPixels[row][col] = 0
 			}
 		}
@@ -104,6 +106,11 @@ exports.calculateDiff = async (screenshotUrl, targetScreenshotUrl, request) => {
 		request.log([task],`${seq_no}- Getting DiffImage`)
 		let diffImage = await getDiffImage(screenshotBuf, targetScreenshotBuf)
 		request.log([task],`${seq_no}- Task Completed`)
+		screenshot.release()
+		targetScreenshot.release()
+		bitmapImage.release()
+		cannyImage.release()
+		morphedImage.release()
 		return {
 			diffImage: diffImage.toString('base64'),
 			coordinates: coordinates,
