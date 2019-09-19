@@ -9,7 +9,7 @@ const genRandomSequence = () => {
 
 const pageGotoOptions = {
 	waitUntil: 'networkidle0',
-	timeout: 40000
+	timeout: 60000
 }
 
 const launchChromeWithNewPage = async (args) => {
@@ -35,6 +35,24 @@ const setViewPortAndHeader = async (page, options={}) => {
 	return page
 }
 
+const autoScroll = async (page) => {
+	await page.evaluate(async () => {
+		await new Promise((resolve, reject) => {
+			let totalHeight = 0
+			let distance = 200
+			let timer = setInterval(() => {
+				let scrollHeight = document.body.scrollHeight
+				window.scrollBy(0, distance)
+				totalHeight += distance
+				if(totalHeight >= scrollHeight){
+					clearInterval(timer)
+					resolve()
+				}
+			}, 200)
+		})
+	})
+}
+
 exports.generateHarAndScreenshot = async (url, proxy_server, username, password, request) => {
 	let browser, pid, args
 	let seq_no = genRandomSequence()
@@ -55,6 +73,7 @@ exports.generateHarAndScreenshot = async (url, proxy_server, username, password,
 		const response = await page.goto(url, pageGotoOptions)
 		request.log([task],`${seq_no}-URL_LOADED-${url}-${pid}`)
 		const data = await har.stop()
+		await autoScroll(page)
 		request.log([task],`${seq_no}-HAR_STOPPED-${url}-${pid}`)
 		if (allowScreenshotRespCode.includes(response.status())) {
 			const fullPageScreenshot = await Promise.race([
