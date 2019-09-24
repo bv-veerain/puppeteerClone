@@ -44,7 +44,7 @@ const autoScroll = async (page) => {
 				let scrollHeight = document.body.scrollHeight
 				window.scrollBy(0, distance)
 				totalHeight += distance
-				if(totalHeight >= scrollHeight){
+				if(totalHeight >= scrollHeight || totalHeight > 15000){
 					clearInterval(timer)
 					resolve()
 				}
