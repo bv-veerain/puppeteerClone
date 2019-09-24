@@ -51,6 +51,13 @@ const autoScroll = async (page) => {
 			}, 200)
 		})
 	})
+	await page.evaluate(_ => {
+		window.scrollTo(0, 0)
+	})
+}
+
+const sleep = (ms) => {
+	return new Promise(resolve => setTimeout(() => resolve(), ms));
 }
 
 exports.generateHarAndScreenshot = async (url, proxy_server, username, password, request) => {
@@ -74,6 +81,7 @@ exports.generateHarAndScreenshot = async (url, proxy_server, username, password,
 		request.log([task],`${seq_no}-URL_LOADED-${url}-${pid}`)
 		const data = await har.stop()
 		await autoScroll(page)
+		await sleep(2000)
 		request.log([task],`${seq_no}-HAR_STOPPED-${url}-${pid}`)
 		if (allowScreenshotRespCode.includes(response.status())) {
 			const fullPageScreenshot = await Promise.race([
