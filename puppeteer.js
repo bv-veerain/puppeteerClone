@@ -50,8 +50,6 @@ const autoScroll = async (page) => {
 				}
 			}, 200)
 		})
-	})
-	await page.evaluate(_ => {
 		window.scrollTo(0, 0)
 	})
 }
