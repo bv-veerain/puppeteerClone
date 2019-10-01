@@ -35,8 +35,27 @@ const setViewPortAndHeader = async (page, options={}) => {
 	return page
 }
 
+const autoScroll = async (page) => {
+	await page.evaluate(async () => {
+		await new Promise((resolve, reject) => {
+			let totalHeight = 0
+			let distance = 200
+			let timer = setInterval(() => {
+				let scrollHeight = document.body.scrollHeight
+				window.scrollBy(0, distance)
+				totalHeight += distance
+				if(totalHeight >= scrollHeight || totalHeight > 15000){
+					clearInterval(timer)
+					resolve()
+				}
+			}, 200)
+		})
+		window.scrollTo(0, 0)
+	})
+}
+
 exports.generateHarAndScreenshot = async (url, proxy_server, username, password, request) => {
-	let browser, pid, args
+	let browser, pid, args, page
 	let seq_no = genRandomSequence()
 	args = proxy_server ? [ `--proxy-server=${proxy_server}` ] : []
 	let task = 'HARANDSCREENSHOTINFO'
@@ -44,7 +63,7 @@ exports.generateHarAndScreenshot = async (url, proxy_server, username, password,
 		request.log([task],`${seq_no}-BROWSER_LAUNCHING-${url}`)
 		let res = await launchChromeWithNewPage(args)
 		browser = res.browser
-		let page = res.page
+		page = res.page
 		pid = browser.process().pid
 		request.log([task],`${seq_no}-BROWSER_LAUNCHED_WITH_NEW_PAGE-${url}-${pid}`)
 		page = await setViewPortAndHeader(page, {username:username, password:password})
@@ -55,6 +74,8 @@ exports.generateHarAndScreenshot = async (url, proxy_server, username, password,
 		const response = await page.goto(url, pageGotoOptions)
 		request.log([task],`${seq_no}-URL_LOADED-${url}-${pid}`)
 		const data = await har.stop()
+		await autoScroll(page)
+		await page.waitFor(2000)
 		request.log([task],`${seq_no}-HAR_STOPPED-${url}-${pid}`)
 		if (allowScreenshotRespCode.includes(response.status())) {
 			const fullPageScreenshot = await Promise.race([
@@ -93,6 +114,9 @@ exports.generateHarAndScreenshot = async (url, proxy_server, username, password,
 	} finally {
 		if (browser){
 			try {
+				if (page){
+					await page.close()
+				}
 				await browser.close()
 				request.log([task],`${seq_no}-BROWSER_CLOSED-${url}-${pid}`)
 			} catch (err){
@@ -105,7 +129,7 @@ exports.generateHarAndScreenshot = async (url, proxy_server, username, password,
 }
 
 exports.capturePdf = async (url, proxy_server, username, password, options, request) => {
-	let browser, pid
+	let browser, pid, page
 	let task = 'CAPTUREPDF'
 	let args = proxy_server ? [ `--proxy-server=${proxy_server}` ] : []
 	let seq_no = genRandomSequence()
@@ -113,7 +137,7 @@ exports.capturePdf = async (url, proxy_server, username, password, options, requ
 		request.log([task],`${seq_no}-BROWSER_LAUNCHING-${url}`)
 		let res = await launchChromeWithNewPage(args)
 		browser = res.browser
-		let page = res.page
+		page = res.page
 		pid = browser.process().pid
 		request.log([task],`${seq_no}-BROWSER_LAUNCHED_WITH_NEW_PAGE-${url}-${pid}`)
 		page = await setViewPortAndHeader(page, {username:username, password:password})
@@ -141,6 +165,9 @@ exports.capturePdf = async (url, proxy_server, username, password, options, requ
 	} finally {
 		if (browser){
 			try {
+				if (page){
+					await page.close()
+				}
 				await browser.close()
 				request.log([task],`${seq_no}-BROWSER_CLOSED-${url}-${pid}`)
 			} catch (err){
@@ -155,7 +182,7 @@ exports.capturePdf = async (url, proxy_server, username, password, options, requ
 exports.loadPage = async (page_src, request) => {
 	const fs = require('fs')
 	const path = require('path')
-	let browser, pid
+	let browser, pid, page
 	let new_tab_urls = []
 	let requests = []
 	let responses = {}
@@ -174,7 +201,7 @@ exports.loadPage = async (page_src, request) => {
 		request.log([task],`${seq_no}-BROWSER_LAUNCHING`)
 		let res = await launchChromeWithNewPage([])
 		browser = res.browser
-		let page = res.page
+		page = res.page
 		pid = browser.process().pid
 		request.log([task],`${seq_no}-BROWSER_LAUNCHED_WITH_NEW_PAGE-${pid}`)
 		browser.on('targetcreated', async target => {
@@ -218,7 +245,11 @@ exports.loadPage = async (page_src, request) => {
 		throw err
 	} finally {
 		if (browser) {
+			if (page){
+				await page.close()
+			}
 			await browser.close()
+			request.log([task],`${seq_no}-BROWSER_CLOSED-${pid}`)
 		}
 		if (fs.existsSync(page_src_fpath)) {
 			fs.unlinkSync(page_src_fpath)
