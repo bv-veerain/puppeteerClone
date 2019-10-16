@@ -16,8 +16,7 @@ const pageGotoOptions = {
 const launchChromeWithNewPage = async (args) => {
 	const browser = await puppeteer.launch({
 		ignoreHTTPSErrors: true,
-		args: args.concat([`--disable-extensions-except=${uBlock}`, `--load-extension=${uBlock}`]),
-		headless: false
+		args: args.concat([`--disable-extensions-except=${uBlock}`, `--load-extension=${uBlock}`])
 	})
 	const page = await browser.newPage()
 	return {
