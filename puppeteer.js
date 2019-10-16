@@ -3,19 +3,21 @@
 const puppeteer = require('puppeteer')
 const PuppeteerHar = require('puppeteer-har')
 const allowScreenshotRespCode = [200, 404]
+const uBlock = "./uBlock0.chromium"
 const genRandomSequence = () => {
 	return Math.floor(Math.random() *100000000000000)
 }
 
 const pageGotoOptions = {
 	waitUntil: 'networkidle0',
-	timeout: 40000
+	timeout: 60000
 }
 
 const launchChromeWithNewPage = async (args) => {
 	const browser = await puppeteer.launch({
 		ignoreHTTPSErrors: true,
-		args: args
+		args: args.concat([`--disable-extensions-except=${uBlock}`, `--load-extension=${uBlock}`]),
+		headless: false
 	})
 	const page = await browser.newPage()
 	return {
@@ -48,9 +50,65 @@ const autoScroll = async (page) => {
 					clearInterval(timer)
 					resolve()
 				}
-			}, 200)
+			}, 200, true)
 		})
 		window.scrollTo(0, 0)
+	})
+}
+
+const disableGifImages = async (page) => {
+	await page.setRequestInterception(true)
+	page.on('request', request => {
+		if (request.resourceType() === 'image' && new RegExp("http.*\.gif").exec(request.url())) {
+			request.abort();
+		} else {
+			request.continue();
+		}
+	})
+}
+
+const disableAnimation = async (page) => {
+	await page.evaluateOnNewDocument(() => {
+		window.originalSetTimeout = window.setTimeout
+		window.originalInterval = window.setInterval
+		window.timeouts = {}
+		window.hash = function(content) {
+			var hash = 0, i, chr
+			if (content.length === 0) return hash
+			for (i = 0; i < content.length; i++) {
+				chr   = content.charCodeAt(i)
+				hash  = ((hash << 5) - hash) + chr
+				hash |= 0
+			}
+			return hash
+		}
+		window.setTimeout = function(func, delay) {
+			window.timeoutID = 0
+			window.handler = hash(func.toString())
+			if (window.timeouts[window.handler]) {
+				window.timeouts[window.handler] = window.timeouts[window.handler] + 1
+			} else {
+				window.timeouts[window.handler] = 1
+			}
+			if (window.timeouts[window.handler] < 1000) {
+				window.timeoutID = window.originalSetTimeout(func, 1)
+			} else {
+				window.timeoutID = window.originalSetTimeout(() => {}, 1)
+			}
+			return window.timeoutID
+		}
+		window.setInterval = function(func, delay, flag = false) {
+			window.intervalID = 0
+			if (flag) {
+				window.intervalID = window.originalInterval(func, delay)
+			} else {
+				window.intervalID = window.originalInterval(function () {
+					func()
+					window.clearInterval(window.intervalID)
+				}, 10000000)
+			}
+			return window.intervalID
+		}
 	})
 }
 
@@ -71,11 +129,13 @@ exports.generateHarAndScreenshot = async (url, proxy_server, username, password,
 		const har = new PuppeteerHar(page)
 		await har.start()
 		request.log([task],`${seq_no}-HAR_STARTED-${url}-${pid}`)
+		await disableGifImages(page)
+		await disableAnimation(page)
 		const response = await page.goto(url, pageGotoOptions)
 		request.log([task],`${seq_no}-URL_LOADED-${url}-${pid}`)
 		const data = await har.stop()
 		await autoScroll(page)
-		await page.waitFor(2000)
+		await page.waitFor(5000)
 		request.log([task],`${seq_no}-HAR_STOPPED-${url}-${pid}`)
 		if (allowScreenshotRespCode.includes(response.status())) {
 			const fullPageScreenshot = await Promise.race([
