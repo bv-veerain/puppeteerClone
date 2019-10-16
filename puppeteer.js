@@ -10,7 +10,7 @@ const genRandomSequence = () => {
 
 const pageGotoOptions = {
 	waitUntil: 'networkidle0',
-	timeout: 60000
+	timeout: 40000
 }
 
 const launchChromeWithNewPage = async (args) => {
