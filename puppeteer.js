@@ -13,8 +13,8 @@ const pageGotoOptions = {
 	timeout: 40000
 }
 
-const launchChromeWithNewPage = async (args, enableUblock = false) => {
-	if (enableUblock) {
+const launchChromeWithNewPage = async (args, enableExtension = false) => {
+	if (enableExtension) {
 		args = args.concat([`--disable-extensions-except=${uBlock}`, `--load-extension=${uBlock}`])
 	}
 	const browser = await puppeteer.launch({
