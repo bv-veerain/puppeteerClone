@@ -119,7 +119,7 @@ exports.generateHarAndScreenshot = async (url, proxy_server, username, password,
 	let task = 'HARANDSCREENSHOTINFO'
 	try {
 		request.log([task],`${seq_no}-BROWSER_LAUNCHING-${url}`)
-		let res = await launchChromeWithNewPage(args, true)
+		let res = await launchChromeWithNewPage(args)
 		browser = res.browser
 		page = res.page
 		pid = browser.process().pid
