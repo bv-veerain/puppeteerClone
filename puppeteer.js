@@ -13,10 +13,13 @@ const pageGotoOptions = {
 	timeout: 40000
 }
 
-const launchChromeWithNewPage = async (args) => {
+const launchChromeWithNewPage = async (args, enableUblock = false) => {
+	if (enableUblock) {
+		args = args.concat([`--disable-extensions-except=${uBlock}`, `--load-extension=${uBlock}`])
+	}
 	const browser = await puppeteer.launch({
 		ignoreHTTPSErrors: true,
-		args: args.concat([`--disable-extensions-except=${uBlock}`, `--load-extension=${uBlock}`])
+		args: args
 	})
 	const page = await browser.newPage()
 	return {
@@ -118,7 +121,7 @@ exports.generateHarAndScreenshot = async (url, proxy_server, username, password,
 	let task = 'HARANDSCREENSHOTINFO'
 	try {
 		request.log([task],`${seq_no}-BROWSER_LAUNCHING-${url}`)
-		let res = await launchChromeWithNewPage(args)
+		let res = await launchChromeWithNewPage(args, true)
 		browser = res.browser
 		page = res.page
 		pid = browser.process().pid
