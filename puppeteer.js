@@ -4,6 +4,7 @@ const puppeteer = require('puppeteer')
 const PuppeteerHar = require('puppeteer-har')
 const allowScreenshotRespCode = [200, 404]
 const uBlock = "./uBlock0.chromium"
+const Jimp = require('jimp')
 const genRandomSequence = () => {
 	return Math.floor(Math.random() *100000000000000)
 }
@@ -37,21 +38,23 @@ const setViewPortAndHeader = async (page, options={}) => {
 }
 
 const autoScroll = async (page) => {
-	await page.evaluate(async () => {
+	return await page.evaluate(async () => {
 		await new Promise((resolve, reject) => {
-			let totalHeight = 0
-			let distance = 200
-			let timer = setInterval(() => {
-				let scrollHeight = document.body.scrollHeight
-				window.scrollBy(0, distance)
-				totalHeight += distance
-				if(totalHeight >= scrollHeight || totalHeight > 15000){
-					clearInterval(timer)
-					resolve()
-				}
-			}, 200, true)
-		})
-		window.scrollTo(0, 0)
+				let totalHeight = 0
+				let distance = 200
+				let timer = setInterval(() => {
+					let scrollHeight = document.body.scrollHeight
+					window.maxHeight = scrollHeight
+					window.scrollBy(0, distance)
+					totalHeight += distance
+					if(totalHeight >= scrollHeight || totalHeight > 15000){
+						clearInterval(timer)
+						resolve()
+					}
+				}, 200, true)
+			})
+			window.scrollTo(0, 0)
+		return maxHeight
 	})
 }
 
@@ -71,6 +74,7 @@ const disableAnimation = async (page) => {
 		window.originalSetTimeout = window.setTimeout
 		window.originalInterval = window.setInterval
 		window.timeouts = {}
+		window.intervals = {}
 		window.hash = function(content) {
 			var hash = 0, i, chr
 			if (content.length === 0) return hash
@@ -89,22 +93,29 @@ const disableAnimation = async (page) => {
 			} else {
 				window.timeouts[window.handler] = 1
 			}
-			if (window.timeouts[window.handler] < 1000) {
+			if (window.timeouts[window.handler] < 2000) {
 				window.timeoutID = window.originalSetTimeout(func, 1)
 			} else {
 				window.timeoutID = window.originalSetTimeout(() => {}, 1)
 			}
 			return window.timeoutID
 		}
+
 		window.setInterval = function(func, delay, flag = false) {
-			window.intervalID = 0
-			if (flag) {
+			window.intervalID = 999999999
+			if (flag == true) {
 				window.intervalID = window.originalInterval(func, delay)
 			} else {
-				window.intervalID = window.originalInterval(function () {
+				window.intervalHandler = hash(func.toString())
+				if (window.intervals[window.intervalHandler]) {
+					window.intervals[window.intervalHandler] = window.intervals[window.intervalHandler] + 1
+				} else {
+					window.intervals[window.intervalHandler] = 1
+				}
+				if (window.intervals[window.intervalHandler] < 10) {
 					func()
-					window.clearInterval(window.intervalID)
-				}, 10000000)
+					window.intervalID = window.setInterval(func, 1, false)
+				}
 			}
 			return window.intervalID
 		}
@@ -133,20 +144,44 @@ exports.generateHarAndScreenshot = async (url, proxy_server, username, password,
 		await disableAnimation(page)
 		const response = await page.goto(url, pageGotoOptions)
 		request.log([task],`${seq_no}-URL_LOADED-${url}-${pid}`)
-		const data = await har.stop()
-		await autoScroll(page)
-		await page.waitFor(5000)
+		const data = await Promise.race([har.stop(), new Promise((resolve) => setTimeout(resolve, 20000, 'Har Timed Out'))])
+		if (data == 'Har Timed Out') {
+			throw Error('Har Timed Out')
+		}
+		request.log([task],`${seq_no}-SCROLLING_PAGE-${url}-${pid}`)
+		const maxHeight = await Promise.race([autoScroll(page), new Promise((resolve) => setTimeout(resolve, 20000, 'Auto Scroll Timed Out'))])
+		if (maxHeight == 'Auto Scroll Timed Out') {
+			throw Error('Auto Scroll Timed Out')
+		}
+		request.log([task],`${seq_no}-SCROLLING_DONE-${url}-${pid}`)
+		await page.waitFor(3000)
 		request.log([task],`${seq_no}-HAR_STOPPED-${url}-${pid}`)
 		if (allowScreenshotRespCode.includes(response.status())) {
-			const fullPageScreenshot = await Promise.race([
-				page.screenshot({type: 'jpeg', encoding: 'base64', fullPage: true}),
-				new Promise((resolve) => setTimeout(resolve, 20000, 'Full Screenshot Timed Out'))
-			])
+			const maxViewportHeight = 4000
+			const viewportWidth = await page.viewport().width
+			var heightSoFar = 0
+			var fullPageScreenshot = await new Jimp(viewportWidth, maxHeight, 0x0)
+			for( let itr = 0; (itr * maxViewportHeight) < maxHeight; itr++) {
+				heightSoFar += maxViewportHeight
+				let clipBuf = await Promise.race([page.screenshot({ type: 'jpeg', fullPage: false,
+						clip: {x: 0, y: itr * maxViewportHeight, width: viewportWidth,
+							height: heightSoFar > maxHeight ? (maxViewportHeight - (heightSoFar - maxHeight)) : maxViewportHeight
+						}}),
+						new Promise((resolve) => setTimeout(resolve, 20000, 'Full Screenshot Timed Out'))
+				])
+				if (clipBuf == 'Full Screenshot Timed Out') {
+					fullPageScreenshot = 'Full Screenshot Timed Out'
+					break
+				}
+				let clip = await Jimp.read(clipBuf)
+				await fullPageScreenshot.composite(clip, 0, maxViewportHeight*itr)
+			}
 			if (fullPageScreenshot === 'Full Screenshot Timed Out') {
 				request.log([task], `${seq_no}-FULLPAGE_SCREENSHOT_TIMEDOUT-${url}-${pid}`)
 			} else	{
 				request.log([task],`${seq_no}-FULLPAGE_SCREENSHOT_TAKEN-${url}-${pid}`)
 			}
+			const fullPageScreenshotBuf = await fullPageScreenshot.getBufferAsync(Jimp.MIME_JPEG)
 			const screenshot = await Promise.race([
 				page.screenshot({type: 'jpeg', encoding: 'base64'}),
 				new Promise((resolve) => setTimeout(resolve, 20000, 'Site Screenshot Timed Out'))
@@ -160,7 +195,7 @@ exports.generateHarAndScreenshot = async (url, proxy_server, username, password,
 				site_resp_code: response.status(),
 				har: data,
 				site_screenshot: screenshot,
-				full_site_screenshot: fullPageScreenshot
+				full_site_screenshot: fullPageScreenshotBuf.toString('base64')
 			}
 		} else {
 			request.log([task], `${seq_no}-SCREENSHOT_FAILED-${url}-${pid}`)
