@@ -122,11 +122,13 @@ const disableAnimation = async (page) => {
 	})
 }
 
-exports.generateHarAndScreenshot = async (url, proxy_server, username, password, request) => {
+exports.generateHarAndScreenshot = async (url, proxy_server, username, password, config, request) => {
 	let browser, pid, args, page
 	let seq_no = genRandomSequence()
 	args = proxy_server ? [ `--proxy-server=${proxy_server}` ] : []
-	args = args.concat([`--disable-extensions-except=${uBlock}`, `--load-extension=${uBlock}`])
+	if (config.ads_disabled) {
+		args = args.concat([`--disable-extensions-except=${uBlock}`, `--load-extension=${uBlock}`])
+	}
 	let task = 'HARANDSCREENSHOTINFO'
 	try {
 		request.log([task],`${seq_no}-BROWSER_LAUNCHING-${url}`)
@@ -140,8 +142,12 @@ exports.generateHarAndScreenshot = async (url, proxy_server, username, password,
 		const har = new PuppeteerHar(page)
 		await har.start()
 		request.log([task],`${seq_no}-HAR_STARTED-${url}-${pid}`)
-		await disableGifImages(page)
-		await disableAnimation(page)
+		if (config.gifs_disabled) {
+			await disableGifImages(page)
+		}
+		if (config.animations_disabled) {
+			await disableAnimation(page)
+		}
 		const response = await page.goto(url, pageGotoOptions)
 		request.log([task],`${seq_no}-URL_LOADED-${url}-${pid}`)
 		const data = await Promise.race([har.stop(), new Promise((resolve) => setTimeout(resolve, 20000, 'Har Timed Out'))])
