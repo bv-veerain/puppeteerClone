@@ -292,7 +292,6 @@ exports.loadPage = async (page_src, request) => {
 		await page.mouse.click(1000, 1000)
 		await page.waitFor(1000) //wait for 1 seconds.
 		await page.setJavaScriptEnabled( false )
-		await page.evaluate(() => { window.stop() } )
 		let new_page_src = Buffer.from(await page.content()).toString('base64')
 		request.log([task],`${seq_no}-SOURCE_LOADED-${pid}`)
 		return {
