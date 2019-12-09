@@ -40,20 +40,20 @@ const setViewPortAndHeader = async (page, options={}) => {
 const autoScroll = async (page) => {
 	return await page.evaluate(async () => {
 		await new Promise((resolve, reject) => {
-				let totalHeight = 0
-				let distance = 200
-				let timer = setInterval(() => {
-					let scrollHeight = document.body.scrollHeight
-					window.maxHeight = scrollHeight
-					window.scrollBy(0, distance)
-					totalHeight += distance
-					if(totalHeight >= scrollHeight || totalHeight > 15000){
-						clearInterval(timer)
-						resolve()
-					}
-				}, 200, true)
-			})
-			window.scrollTo(0, 0)
+			let totalHeight = 0
+			let distance = 200
+			let timer = setInterval(() => {
+				let scrollHeight = document.body.scrollHeight
+				window.maxHeight = scrollHeight
+				window.scrollBy(0, distance)
+				totalHeight += distance
+				if(totalHeight >= scrollHeight || totalHeight > 15000){
+					clearInterval(timer)
+					resolve()
+				}
+			}, 200, true)
+		})
+		window.scrollTo(0, 0)
 		return maxHeight
 	})
 }
@@ -93,40 +93,44 @@ const disableAnimation = async (page) => {
 			} else {
 				window.timeouts[window.handler] = 1
 			}
-			if (window.timeouts[window.handler] < 2000) {
+			if (window.timeouts[window.handler] < 1000) {
 				window.timeoutID = window.originalSetTimeout(func, 1)
 			} else {
-				window.timeoutID = window.originalSetTimeout(() => {}, 1)
+				window.timeoutID = window.originalSetTimeout(() => {}, 100000)
 			}
 			return window.timeoutID
 		}
 
+		window.counter = 0
 		window.setInterval = function(func, delay, flag = false) {
-			window.intervalID = 999999999
-			if (flag == true) {
-				window.intervalID = window.originalInterval(func, delay)
-			} else {
-				window.intervalHandler = hash(func.toString())
-				if (window.intervals[window.intervalHandler]) {
-					window.intervals[window.intervalHandler] = window.intervals[window.intervalHandler] + 1
-				} else {
-					window.intervals[window.intervalHandler] = 1
-				}
-				if (window.intervals[window.intervalHandler] < 10) {
-					func()
-					window.intervalID = window.setInterval(func, 1, false)
-				}
+			window.counter++
+			if (window.counter > 10 && !flag) {
+				return 0
 			}
-			return window.intervalID
+			let id = 0
+			if (flag) {
+				id = window.originalInterval(func, delay)
+			} else {
+				id = window.originalInterval(() => {
+					window.intervals[window.counter] = (window.intervals[window.counter] || 0) + 1
+					if (window.intervals[window.counter] >= 100) {
+						clearInterval(id)
+					} else {
+						func()
+					}
+				}, 20)
+			}
+			return id
 		}
 	})
 }
 
-exports.generateHarAndScreenshot = async (url, proxy_server, username, password, config, request) => {
+exports.generateHarAndScreenshot = async (url, proxy_server, username, password, options, request) => {
 	let browser, pid, args, page
 	let seq_no = genRandomSequence()
 	args = proxy_server ? [ `--proxy-server=${proxy_server}` ] : []
-	if (config.ads_disabled) {
+	args = args.concat(['--no-sandbox','--disable-web-security','--disable-gpu', '--hide-scrollbars', '--disable-setuid-sandbox'])
+	if (options.ads_disbaled) {
 		args = args.concat([`--disable-extensions-except=${uBlock}`, `--load-extension=${uBlock}`])
 	}
 	let task = 'HARANDSCREENSHOTINFO'
@@ -142,66 +146,94 @@ exports.generateHarAndScreenshot = async (url, proxy_server, username, password,
 		const har = new PuppeteerHar(page)
 		await har.start()
 		request.log([task],`${seq_no}-HAR_STARTED-${url}-${pid}`)
-		if (config.gifs_disabled) {
+		if (options.gifs_disabled) {
 			await disableGifImages(page)
 		}
-		if (config.animations_disabled) {
+		if (options.animations_disabled) {
 			await disableAnimation(page)
 		}
 		const response = await page.goto(url, pageGotoOptions)
 		request.log([task],`${seq_no}-URL_LOADED-${url}-${pid}`)
 		const data = await Promise.race([har.stop(), new Promise((resolve) => setTimeout(resolve, 20000, 'Har Timed Out'))])
-		if (data == 'Har Timed Out') {
-			throw Error('Har Timed Out')
+		if (data == 'Har_TimedOut') {
+			throw Error('Har_TimedOut')
 		}
-		request.log([task],`${seq_no}-SCROLLING_PAGE-${url}-${pid}`)
-		const maxHeight = await Promise.race([autoScroll(page), new Promise((resolve) => setTimeout(resolve, 20000, 'Auto Scroll Timed Out'))])
-		if (maxHeight == 'Auto Scroll Timed Out') {
-			throw Error('Auto Scroll Timed Out')
-		}
-		request.log([task],`${seq_no}-SCROLLING_DONE-${url}-${pid}`)
-		await page.waitFor(3000)
-		request.log([task],`${seq_no}-HAR_STOPPED-${url}-${pid}`)
 		if (allowScreenshotRespCode.includes(response.status())) {
-			const maxViewportHeight = 4000
-			const viewportWidth = await page.viewport().width
-			var heightSoFar = 0
-			var fullPageScreenshot = await new Jimp(viewportWidth, maxHeight, 0x0)
-			for( let itr = 0; (itr * maxViewportHeight) < maxHeight; itr++) {
-				heightSoFar += maxViewportHeight
-				let clipBuf = await Promise.race([page.screenshot({ type: 'jpeg', fullPage: false,
-						clip: {x: 0, y: itr * maxViewportHeight, width: viewportWidth,
-							height: heightSoFar > maxHeight ? (maxViewportHeight - (heightSoFar - maxHeight)) : maxViewportHeight
-						}}),
-						new Promise((resolve) => setTimeout(resolve, 20000, 'Full Screenshot Timed Out'))
-				])
-				if (clipBuf == 'Full Screenshot Timed Out') {
-					fullPageScreenshot = 'Full Screenshot Timed Out'
-					break
+			request.log([task],`${seq_no}-HAR_STOPPED-${url}-${pid}`)
+			await page.addStyleTag({path: 'page.css'})
+			request.log([task],`${seq_no}-SCROLLING_PAGE-${url}-${pid}`)
+			const maxHeight = await Promise.race([autoScroll(page), new Promise((resolve) => setTimeout(resolve, 20000, 'Scroll_TimedOut'))])
+			if (maxHeight == 'Scroll_TimedOut') {
+				request.log([task],`${seq_no}-SCROLLING_TIMEDOUT-${url}-${pid}`)
+				throw "Scroll_TimeOut"
+			}
+			request.log([task],`${seq_no}-SCROLLING_DONE-${url}-${pid}`)
+			await page.waitFor(4000)
+			await page.evaluate(async () => {
+				let newSrc = "https://www.youtube.com/embed/sP6pNfyCiM4sddsdssdds"
+				let yt_frames =  jQuery("iframe")
+				if (yt_frames) {
+					yt_frames.filter("[src*='www.youtube.com/'], [src*='www.youtube-nocookie.com/embed']").attr("src", newSrc)
 				}
-				let clip = await Jimp.read(clipBuf)
-				await fullPageScreenshot.composite(clip, 0, maxViewportHeight*itr)
+			})
+			var fpageScreenshotEncodedBuf, stitchedFpageScreenshotEncodedBuf
+			if (options.stitched_fpage_screenshot) {
+				var heightSoFar = 0, stitchedFpageScreenshot, screenshotTimedout = false
+				const viewport = await page.viewport()
+				stitchedFpageScreenshot = await new Jimp(viewport.width, maxHeight, 0x0)
+				for( let itr = 0; (itr * viewport.height) <= maxHeight; itr++) {
+					heightSoFar += viewport.height
+					let clipHeight =  heightSoFar > maxHeight ? (viewport.height - (heightSoFar - maxHeight)) : viewport.height
+					let clipBuf = await Promise.race([page.screenshot({
+						type: 'jpeg',
+						fullPage: false,
+						clip: {x: 0, y: itr * viewport.height, width: viewport.width, height: clipHeight}
+					}), new Promise((resolve) => setTimeout(resolve, 20000, 'Screenshot_TimedOut'))
+					])
+					if (clipBuf == 'Screenshot_TimedOut') {
+						screenshotTimedout = true
+						request.log([task],`${seq_no}-STITCHED_FULLPAGE_SCREENSHOT_TIMEDOUT-${url}-${pid}`)
+						break
+					} else {
+						let clip = await Jimp.read(clipBuf)
+						await stitchedFpageScreenshot.composite(clip, 0, itr * viewport.height)
+					}
+				}
+				if (!screenshotTimedout) {
+					let buff = await stitchedFpageScreenshot.getBufferAsync(Jimp.MIME_JPEG)
+					stitchedFpageScreenshotEncodedBuf = buff.toString('base64')
+					request.log([task],`${seq_no}-STITCHED_FULLPAGE_SCREENSHOT_TAKEN-${url}-${pid}`)
+				} else {
+					stitchedFpageScreenshotEncodedBuf = "Stitched_Fpage_Screenshot_TimedOut"
+					request.log([task],`${seq_no}-STITCHED_FULLPAGE_SCREENSHOT_TIMEDOUT-${url}-${pid}`)
+				}
 			}
-			if (fullPageScreenshot === 'Full Screenshot Timed Out') {
-				request.log([task], `${seq_no}-FULLPAGE_SCREENSHOT_TIMEDOUT-${url}-${pid}`)
-			} else	{
-				request.log([task],`${seq_no}-FULLPAGE_SCREENSHOT_TAKEN-${url}-${pid}`)
+			if (options.fpage_screenshot || !options.stitched_fpage_screenshot) {
+				fpageScreenshotEncodedBuf = await Promise.race([
+					page.screenshot({type: 'jpeg', encoding: 'base64', fullPage: true}),
+					new Promise((resolve) => setTimeout(resolve, 20000, 'Fpage_Screenshot_TimedOut'))
+				])
+				if ( fpageScreenshotEncodedBuf == 'Fpage_Screenshot_TimedOut') {
+					request.log([task],`${seq_no}-FULLPAGE_SCREENSHOT_TIMEDOUT-${url}-${pid}`)
+				} else {
+					request.log([task],`${seq_no}-FULLPAGE_SCREENSHOT_TAKEN-${url}-${pid}`)
+				}
 			}
-			const fullPageScreenshotBuf = await fullPageScreenshot.getBufferAsync(Jimp.MIME_JPEG)
 			const screenshot = await Promise.race([
 				page.screenshot({type: 'jpeg', encoding: 'base64'}),
-				new Promise((resolve) => setTimeout(resolve, 20000, 'Site Screenshot Timed Out'))
+				new Promise((resolve) => setTimeout(resolve, 20000, 'Screenshot_TimedOut'))
 			])
-			if (screenshot === 'Site Screenshot Timed Out') {
+			if (screenshot === 'Screenshot_TimedOut') {
 				request.log([task],`${seq_no}-SCREENSHOT_TIMEDOUT-${url}-${pid}`)
 			} else {
 				request.log([task],`${seq_no}-SCREENSHOT_TAKEN-${url}-${pid}`)
 			}
 			return {
-				site_resp_code: response.status(),
+				http_resp_code: response.status(),
 				har: data,
-				site_screenshot: screenshot,
-				full_site_screenshot: fullPageScreenshotBuf.toString('base64')
+				fold_screenshot: screenshot,
+				fpage_screenshot: fpageScreenshotEncodedBuf,
+				stitched_fpage_screenshot: stitchedFpageScreenshotEncodedBuf
 			}
 		} else {
 			request.log([task], `${seq_no}-SCREENSHOT_FAILED-${url}-${pid}`)
