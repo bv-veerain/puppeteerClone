@@ -171,8 +171,8 @@ exports.generateHarAndScreenshot = async (url, proxy_server, username, password,
 			await page.waitFor(4000)
 			await page.evaluate(async () => {
 				let newSrc = "https://www.youtube.com/embed/sP6pNfyCiM4sddsdssdds"
-				let yt_frames =  jQuery("iframe")
-				if (yt_frames) {
+				let frames =  jQuery("iframe")
+				if (frames) {
 					yt_frames.filter("[src*='www.youtube.com/'], [src*='www.youtube-nocookie.com/embed']").attr("src", newSrc)
 				}
 			})
@@ -204,16 +204,16 @@ exports.generateHarAndScreenshot = async (url, proxy_server, username, password,
 					stitchedFpageScreenshotEncodedBuf = buff.toString('base64')
 					request.log([task],`${seq_no}-STITCHED_FULLPAGE_SCREENSHOT_TAKEN-${url}-${pid}`)
 				} else {
-					stitchedFpageScreenshotEncodedBuf = "Stitched_Fpage_Screenshot_TimedOut"
+					stitchedFpageScreenshotEncodedBuf = "Screenshot_TimedOut"
 					request.log([task],`${seq_no}-STITCHED_FULLPAGE_SCREENSHOT_TIMEDOUT-${url}-${pid}`)
 				}
 			}
 			if (options.fpage_screenshot || !options.stitched_fpage_screenshot) {
 				fpageScreenshotEncodedBuf = await Promise.race([
 					page.screenshot({type: 'jpeg', encoding: 'base64', fullPage: true}),
-					new Promise((resolve) => setTimeout(resolve, 20000, 'Fpage_Screenshot_TimedOut'))
+					new Promise((resolve) => setTimeout(resolve, 20000, 'Screenshot_TimedOut'))
 				])
-				if ( fpageScreenshotEncodedBuf == 'Fpage_Screenshot_TimedOut') {
+				if ( fpageScreenshotEncodedBuf == 'Screenshot_TimedOut') {
 					request.log([task],`${seq_no}-FULLPAGE_SCREENSHOT_TIMEDOUT-${url}-${pid}`)
 				} else {
 					request.log([task],`${seq_no}-FULLPAGE_SCREENSHOT_TAKEN-${url}-${pid}`)
