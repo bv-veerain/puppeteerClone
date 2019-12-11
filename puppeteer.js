@@ -125,6 +125,74 @@ const disableAnimation = async (page) => {
 	})
 }
 
+const captureStitchedFpageScreenshot = async (page, maxHeight, url, seq_no, pid, task, request) => {
+	let heightSoFar = 0, stitchedFpageScreenshot, screenshotTimedout = false
+	const viewport = await page.viewport()
+	stitchedFpageScreenshot = await new Jimp(viewport.width, maxHeight, 0x0)
+	for( let itr = 0; (itr * viewport.height) <= maxHeight; itr++) {
+		heightSoFar += viewport.height
+		let clipHeight =  heightSoFar > maxHeight ?
+			(viewport.height - (heightSoFar - maxHeight)) : viewport.height
+		let clipBuf = await Promise.race([page.screenshot({
+			type: 'jpeg',
+			fullPage: false,
+			clip: {x: 0, y: itr * viewport.height, width: viewport.width, height: clipHeight}
+		}), new Promise((resolve) => setTimeout(resolve, 20000, 'Screenshot_TimedOut'))
+		])
+		if (clipBuf == 'Screenshot_TimedOut') {
+			screenshotTimedout = true
+			break
+		} else {
+			let clip = await Jimp.read(clipBuf)
+			await stitchedFpageScreenshot.composite(clip, 0, itr * viewport.height)
+		}
+	}
+	if (!screenshotTimedout) {
+		let buff = await stitchedFpageScreenshot.getBufferAsync(Jimp.MIME_JPEG)
+		request.log([task],`${seq_no}-STITCHED_FULLPAGE_SCREENSHOT_TAKEN-${url}-${pid}`)
+		return buff.toString('base64')
+	} else {
+		request.log([task],`${seq_no}-STITCHED_FULLPAGE_SCREENSHOT_TIMEDOUT-${url}-${pid}`)
+		return "Screenshot_TimedOut"
+	}
+}
+
+const captureFpageScreenshot = async (page, url, pid, seq_no, task, request) => {
+	let fpageScreenshotEncodedBuf = await Promise.race([
+		page.screenshot({type: 'jpeg', encoding: 'base64', fullPage: true}),
+		new Promise((resolve) => setTimeout(resolve, 20000, 'Screenshot_TimedOut'))
+	])
+	if ( fpageScreenshotEncodedBuf == 'Screenshot_TimedOut') {
+		request.log([task],`${seq_no}-FULLPAGE_SCREENSHOT_TIMEDOUT-${url}-${pid}`)
+	} else {
+		request.log([task],`${seq_no}-FULLPAGE_SCREENSHOT_TAKEN-${url}-${pid}`)
+	}
+	return fpageScreenshotEncodedBuf
+}
+
+const captureFoldScreenshot = async (page, url, pid, seq_no, task, request) => {
+	let foldScreenshotEncodedBuf = await Promise.race([
+		page.screenshot({type: 'jpeg', encoding: 'base64'}),
+		new Promise((resolve) => setTimeout(resolve, 20000, 'Screenshot_TimedOut'))
+	])
+	if (foldScreenshotEncodedBuf === 'Screenshot_TimedOut') {
+		request.log([task],`${seq_no}-SCREENSHOT_TIMEDOUT-${url}-${pid}`)
+	} else {
+		request.log([task],`${seq_no}-SCREENSHOT_TAKEN-${url}-${pid}`)
+	}
+	return foldScreenshotEncodedBuf
+}
+
+const disbaleYTFrames = async (page) => {
+	await page.evaluate(async () => {
+		let newSrc = "https://www.youtube.com/embed/sP6pNfyCiM4sddsdssdds"
+		let frames =  jQuery("iframe")
+		if (frames) {
+			frames.filter("[src*='www.youtube.com/'], [src*='www.youtube-nocookie.com/embed']").attr("src", newSrc)
+		}
+	})
+}
+
 exports.generateHarAndScreenshot = async (url, proxy_server, username, password, options, request) => {
 	let browser, pid, args, page
 	let seq_no = genRandomSequence()
@@ -170,76 +238,27 @@ exports.generateHarAndScreenshot = async (url, proxy_server, username, password,
 			])
 			if (maxHeight == 'Scroll_TimedOut') {
 				request.log([task],`${seq_no}-SCROLLING_TIMEDOUT-${url}-${pid}`)
-				throw "Scroll_TimeOut"
+				throw Error("Scroll_TimeOut")
 			}
 			request.log([task],`${seq_no}-SCROLLING_DONE-${url}-${pid}`)
 			await page.waitFor(4000)
-			if (options.yt_frame_disabled) {
-				await page.evaluate(async () => {
-					let newSrc = "https://www.youtube.com/embed/sP6pNfyCiM4sddsdssdds"
-					let frames =  jQuery("iframe")
-					if (frames) {
-						yt_frames.filter("[src*='www.youtube.com/'], [src*='www.youtube-nocookie.com/embed']").attr("src", newSrc)
-					}
-				})
+			if (options.yt_frames_disabled) {
+				await disbaleYTFrames(page)
 			}
-			var fpageScreenshotEncodedBuf, stitchedFpageScreenshotEncodedBuf
+			let fpageScreenshotEncodedBuf, stitchedFpageScreenshotEncodedBuf, foldScreenshotEncodedBuf
 			if (options.stitched_fpage_screenshot) {
-				var heightSoFar = 0, stitchedFpageScreenshot, screenshotTimedout = false
-				const viewport = await page.viewport()
-				stitchedFpageScreenshot = await new Jimp(viewport.width, maxHeight, 0x0)
-				for( let itr = 0; (itr * viewport.height) <= maxHeight; itr++) {
-					heightSoFar += viewport.height
-					let clipHeight =  heightSoFar > maxHeight ?
-							(viewport.height - (heightSoFar - maxHeight)) : viewport.height
-					let clipBuf = await Promise.race([page.screenshot({
-						type: 'jpeg',
-						fullPage: false,
-						clip: {x: 0, y: itr * viewport.height, width: viewport.width, height: clipHeight}
-					}), new Promise((resolve) => setTimeout(resolve, 20000, 'Screenshot_TimedOut'))
-					])
-					if (clipBuf == 'Screenshot_TimedOut') {
-						screenshotTimedout = true
-						request.log([task],`${seq_no}-STITCHED_FULLPAGE_SCREENSHOT_TIMEDOUT-${url}-${pid}`)
-						break
-					} else {
-						let clip = await Jimp.read(clipBuf)
-						await stitchedFpageScreenshot.composite(clip, 0, itr * viewport.height)
-					}
-				}
-				if (!screenshotTimedout) {
-					let buff = await stitchedFpageScreenshot.getBufferAsync(Jimp.MIME_JPEG)
-					stitchedFpageScreenshotEncodedBuf = buff.toString('base64')
-					request.log([task],`${seq_no}-STITCHED_FULLPAGE_SCREENSHOT_TAKEN-${url}-${pid}`)
-				} else {
-					stitchedFpageScreenshotEncodedBuf = "Screenshot_TimedOut"
-					request.log([task],`${seq_no}-STITCHED_FULLPAGE_SCREENSHOT_TIMEDOUT-${url}-${pid}`)
-				}
+				stitchedFpageScreenshotEncodedBuf = await captureStitchedFpageScreenshot(
+					page, maxHeight, url, seq_no, pid, task, request
+				)
 			}
-			if (options.fpage_screenshot || !options.stitched_fpage_screenshot) {
-				fpageScreenshotEncodedBuf = await Promise.race([
-					page.screenshot({type: 'jpeg', encoding: 'base64', fullPage: true}),
-					new Promise((resolve) => setTimeout(resolve, 20000, 'Screenshot_TimedOut'))
-				])
-				if ( fpageScreenshotEncodedBuf == 'Screenshot_TimedOut') {
-					request.log([task],`${seq_no}-FULLPAGE_SCREENSHOT_TIMEDOUT-${url}-${pid}`)
-				} else {
-					request.log([task],`${seq_no}-FULLPAGE_SCREENSHOT_TAKEN-${url}-${pid}`)
-				}
+			if (options.fpage_screenshot) {
+				fpageScreenshotEncodedBuf = await captureFpageScreenshot(page, url, pid, seq_no, task, request)
 			}
-			const screenshot = await Promise.race([
-				page.screenshot({type: 'jpeg', encoding: 'base64'}),
-				new Promise((resolve) => setTimeout(resolve, 20000, 'Screenshot_TimedOut'))
-			])
-			if (screenshot === 'Screenshot_TimedOut') {
-				request.log([task],`${seq_no}-SCREENSHOT_TIMEDOUT-${url}-${pid}`)
-			} else {
-				request.log([task],`${seq_no}-SCREENSHOT_TAKEN-${url}-${pid}`)
-			}
+			foldScreenshotEncodedBuf = await captureFoldScreenshot(page, url, pid, seq_no, task, request)
 			return {
 				http_resp_code: response.status(),
 				har: data,
-				fold_screenshot: screenshot,
+				fold_screenshot: foldScreenshotEncodedBuf,
 				fpage_screenshot: fpageScreenshotEncodedBuf,
 				stitched_fpage_screenshot: stitchedFpageScreenshotEncodedBuf
 			}
