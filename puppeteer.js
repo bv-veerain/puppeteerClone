@@ -129,7 +129,8 @@ exports.generateHarAndScreenshot = async (url, proxy_server, username, password,
 	let browser, pid, args, page
 	let seq_no = genRandomSequence()
 	args = proxy_server ? [ `--proxy-server=${proxy_server}` ] : []
-	args = args.concat(['--no-sandbox','--disable-web-security','--disable-gpu', '--hide-scrollbars', '--disable-setuid-sandbox'])
+	args = args.concat(['--no-sandbox','--disable-web-security',
+		'--disable-gpu', '--hide-scrollbars', '--disable-setuid-sandbox'])
 	if (options.ads_disbaled) {
 		args = args.concat([`--disable-extensions-except=${uBlock}`, `--load-extension=${uBlock}`])
 	}
@@ -154,7 +155,9 @@ exports.generateHarAndScreenshot = async (url, proxy_server, username, password,
 		}
 		const response = await page.goto(url, pageGotoOptions)
 		request.log([task],`${seq_no}-URL_LOADED-${url}-${pid}`)
-		const data = await Promise.race([har.stop(), new Promise((resolve) => setTimeout(resolve, 20000, 'Har Timed Out'))])
+		const data = await Promise.race([
+			har.stop(), new Promise((resolve) => setTimeout(resolve, 20000, 'Har Timed Out'))
+		])
 		if (data == 'Har_TimedOut') {
 			throw Error('Har_TimedOut')
 		}
@@ -162,20 +165,24 @@ exports.generateHarAndScreenshot = async (url, proxy_server, username, password,
 			request.log([task],`${seq_no}-HAR_STOPPED-${url}-${pid}`)
 			await page.addStyleTag({path: 'page.css'})
 			request.log([task],`${seq_no}-SCROLLING_PAGE-${url}-${pid}`)
-			const maxHeight = await Promise.race([autoScroll(page), new Promise((resolve) => setTimeout(resolve, 20000, 'Scroll_TimedOut'))])
+			const maxHeight = await Promise.race([
+				autoScroll(page), new Promise((resolve) => setTimeout(resolve, 20000, 'Scroll_TimedOut'))
+			])
 			if (maxHeight == 'Scroll_TimedOut') {
 				request.log([task],`${seq_no}-SCROLLING_TIMEDOUT-${url}-${pid}`)
 				throw "Scroll_TimeOut"
 			}
 			request.log([task],`${seq_no}-SCROLLING_DONE-${url}-${pid}`)
 			await page.waitFor(4000)
-			await page.evaluate(async () => {
-				let newSrc = "https://www.youtube.com/embed/sP6pNfyCiM4sddsdssdds"
-				let frames =  jQuery("iframe")
-				if (frames) {
-					yt_frames.filter("[src*='www.youtube.com/'], [src*='www.youtube-nocookie.com/embed']").attr("src", newSrc)
-				}
-			})
+			if (options.yt_frame_disabled) {
+				await page.evaluate(async () => {
+					let newSrc = "https://www.youtube.com/embed/sP6pNfyCiM4sddsdssdds"
+					let frames =  jQuery("iframe")
+					if (frames) {
+						yt_frames.filter("[src*='www.youtube.com/'], [src*='www.youtube-nocookie.com/embed']").attr("src", newSrc)
+					}
+				})
+			}
 			var fpageScreenshotEncodedBuf, stitchedFpageScreenshotEncodedBuf
 			if (options.stitched_fpage_screenshot) {
 				var heightSoFar = 0, stitchedFpageScreenshot, screenshotTimedout = false
@@ -183,7 +190,8 @@ exports.generateHarAndScreenshot = async (url, proxy_server, username, password,
 				stitchedFpageScreenshot = await new Jimp(viewport.width, maxHeight, 0x0)
 				for( let itr = 0; (itr * viewport.height) <= maxHeight; itr++) {
 					heightSoFar += viewport.height
-					let clipHeight =  heightSoFar > maxHeight ? (viewport.height - (heightSoFar - maxHeight)) : viewport.height
+					let clipHeight =  heightSoFar > maxHeight ?
+							(viewport.height - (heightSoFar - maxHeight)) : viewport.height
 					let clipBuf = await Promise.race([page.screenshot({
 						type: 'jpeg',
 						fullPage: false,
@@ -242,7 +250,8 @@ exports.generateHarAndScreenshot = async (url, proxy_server, username, password,
 			}
 		}
 	} catch (err) {
-		request.log(['HARANDSCREENSHOTERROR'], `${seq_no}-SCREENSHOT_ERRORS-${url}-${pid}-${err.message}`)
+		request.log(['HARANDSCREENSHOTERROR'],
+				`${seq_no}-SCREENSHOT_ERRORS-${url}-${pid}-${err.message}`)
 		throw err
 	} finally {
 		if (browser){
