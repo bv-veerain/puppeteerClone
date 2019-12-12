@@ -68,6 +68,7 @@ server.route({
 				data.proxy,
 				data.username,
 				data.password,
+				data.options,
 				request
 			)
 			return (JSON.stringify(har_and_screenshot))
