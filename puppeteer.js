@@ -146,13 +146,13 @@ exports.capturePdf = async (url, proxy_server, username, password, options, requ
 		request.log([task],`${seq_no}-URL_LOADED-${url}-${pid}`)
 		const pdf = await page.pdf({
 			printBackground: true,
-			width: 1100,
-			height: 1027,
+			format: 'A4',
+			landscape: true,
 			margin: {
 				top: options.top || 10,
-				right: options.right || 100,
+				right: options.right || 10,
 				bottom: options.bottom || 10,
-				left: options.left || 100
+				left: options.left || 10
 			}
 		})
 		request.log([task],`${seq_no}-PDF_CAPTURED-${url}-${pid}`)
