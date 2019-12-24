@@ -6,5 +6,8 @@ body {
 *::after,
 *::before {
 	transition-duration: 0ms !important;
+	transition-delay: 0ms !important;
 	animation-iteration-count: 1 !important;
+	animation-duration: 0ms !important;
+	animation-delay: 0ms !important;
 }

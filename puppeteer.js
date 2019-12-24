@@ -87,23 +87,17 @@ const disableAnimation = async (page) => {
 		}
 		window.setTimeout = function(func, delay) {
 			window.timeoutID = 0
-			window.handler = hash(func.toString())
-			if (window.timeouts[window.handler]) {
-				window.timeouts[window.handler] = window.timeouts[window.handler] + 1
-			} else {
-				window.timeouts[window.handler] = 1
-			}
-			if (window.timeouts[window.handler] < 1000) {
+			let handler = hash(func.toString())
+			if ((window.timeouts[handler] || 0) < 1500) {
+				window.timeouts[handler] = (window.timeouts[handler] || 0) + 1
 				window.timeoutID = window.originalSetTimeout(func, 1)
 			} else {
 				window.timeoutID = window.originalSetTimeout(() => {}, 100000)
 			}
 			return window.timeoutID
 		}
-
 		window.counter = 0
 		window.setInterval = function(func, delay, flag = false) {
-			window.counter++
 			if (window.counter > 10 && !flag) {
 				return 0
 			}
@@ -111,14 +105,10 @@ const disableAnimation = async (page) => {
 			if (flag) {
 				id = window.originalInterval(func, delay)
 			} else {
-				id = window.originalInterval(() => {
-					window.intervals[window.counter] = (window.intervals[window.counter] || 0) + 1
-					if (window.intervals[window.counter] >= 100) {
-						clearInterval(id)
-					} else {
-						func()
-					}
-				}, 20)
+				id = window.originalInterval((func) => {
+					func()
+					clearInterval(id)
+				}, 100000, func)
 			}
 			return id
 		}
@@ -199,7 +189,7 @@ exports.generateHarAndScreenshot = async (url, proxy_server, username, password,
 	args = proxy_server ? [ `--proxy-server=${proxy_server}` ] : []
 	args = args.concat(['--no-sandbox','--disable-web-security',
 		'--disable-gpu', '--hide-scrollbars', '--disable-setuid-sandbox'])
-	if (options.ads_disbaled) {
+	if (options.ads_disabled) {
 		args = args.concat([`--disable-extensions-except=${uBlock}`, `--load-extension=${uBlock}`])
 	}
 	let task = 'HARANDSCREENSHOTINFO'
@@ -229,9 +219,17 @@ exports.generateHarAndScreenshot = async (url, proxy_server, username, password,
 		if (data == 'Har_TimedOut') {
 			throw Error('Har_TimedOut')
 		}
+		request.log([task],`${seq_no}-HAR_STOPPED-${url}-${pid}`)
 		if (allowScreenshotRespCode.includes(response.status())) {
-			request.log([task],`${seq_no}-HAR_STOPPED-${url}-${pid}`)
 			await page.addStyleTag({path: 'page.css'})
+			if (options.yt_frames_disabled) {
+				try {
+					await disbaleYTFrames(page)
+				} catch (err) {
+					request.log([task],`${seq_no}-YTFRAMESDISABLEDERROR-${err.message}-${url}-${pid}`)
+				}
+			}
+			await page.waitFor(options.delay)
 			request.log([task],`${seq_no}-SCROLLING_PAGE-${url}-${pid}`)
 			const maxHeight = await Promise.race([
 				autoScroll(page), new Promise((resolve) => setTimeout(resolve, 20000, 'Scroll_TimedOut'))
@@ -242,9 +240,6 @@ exports.generateHarAndScreenshot = async (url, proxy_server, username, password,
 			}
 			request.log([task],`${seq_no}-SCROLLING_DONE-${url}-${pid}`)
 			await page.waitFor(4000)
-			if (options.yt_frames_disabled) {
-				await disbaleYTFrames(page)
-			}
 			let fpageScreenshotEncodedBuf, stitchedFpageScreenshotEncodedBuf, foldScreenshotEncodedBuf
 			if (options.stitched_fpage_screenshot) {
 				stitchedFpageScreenshotEncodedBuf = await captureStitchedFpageScreenshot(
