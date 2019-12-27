@@ -22,7 +22,8 @@ server.route({
 				left: data.left,
 				right: data.right,
 				top: data.top,
-				bottom: data.bottom
+				bottom: data.bottom,
+				pageOptions: data.page_options
 			}
 			let encoded_pdf = await Puppeteer.capturePdf(
 				data.url,
