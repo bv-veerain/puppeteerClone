@@ -153,7 +153,6 @@ exports.capturePdf = async (url, proxy_server, username, password, options, requ
 			},
 			...options.pageOptions
 		}
-		console.log(pageOptions)
 		const pdf = await page.pdf(pageOptions)
 		request.log([task],`${seq_no}-PDF_CAPTURED-${url}-${pid}`)
 		return {
