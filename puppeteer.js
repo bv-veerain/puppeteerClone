@@ -300,17 +300,16 @@ exports.capturePdf = async (url, proxy_server, username, password, options, requ
 		request.log([task],`${seq_no}-APPLIED_VIEW_PORT_AND_HEADER-${url}-${pid}`)
 		await page.goto(url, pageGotoOptions)
 		request.log([task],`${seq_no}-URL_LOADED-${url}-${pid}`)
-		const pdf = await page.pdf({
-			printBackground: true,
-			width: 1100,
-			height: 1027,
+		const pageOptions = { printBackground: true,
 			margin: {
 				top: options.top || 10,
 				right: options.right || 100,
 				bottom: options.bottom || 10,
 				left: options.left || 100
-			}
-		})
+			},
+			...options.pageOptions
+		}
+		const pdf = await page.pdf(pageOptions)
 		request.log([task],`${seq_no}-PDF_CAPTURED-${url}-${pid}`)
 		return {
 			pdf: Buffer.from(pdf).toString('base64')
