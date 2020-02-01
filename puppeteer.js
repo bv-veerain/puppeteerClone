@@ -264,7 +264,7 @@ exports.generateHarAndScreenshot = async (url, proxy_server, username, password,
 			}
 		}
 	} catch (err) {
-		reques.log(['HARANDSCREENSHOTERROR'],
+		request.log(['HARANDSCREENSHOTERROR'],
 				`${seq_no}-SCREENSHOT_ERRORS-${url}-${pid}-${err.message}`)
 		throw err
 	} finally {
@@ -280,49 +280,6 @@ exports.generateHarAndScreenshot = async (url, proxy_server, username, password,
 			}
 		} else {
 			request.log(['HARSCREENSHOTINFO'],`${seq_no}-NO_BROWSER-${url}-${pid}`)
-		}
-	}
-}
-
-exports.reportPreview = async (url, proxy_server, username, password, options, request) => {
-	let browser, pid, args, page
-	let seq_no = genRandomSequence()
-	args = proxy_server ? [ `--proxy-server=${proxy_server}` ] : []
-	args = args.concat(['--no-sandbox','--disable-web-security',
-		'--disable-gpu', '--hide-scrollbars', '--disable-setuid-sandbox'])
-	let task = 'PREVIEWREPORT'
-	try {
-		request.log([task],`${seq_no}-BROWSER_LAUNCHING-${url}`)
-		let res = await launchChromeWithNewPage(args)
-		browser = res.browser
-		page = res.page
-		pid = browser.process().pid
-		request.log([task],`${seq_no}-BROWSER_LAUNCHED_WITH_NEW_PAGE-${url}-${pid}`)
-		page = await setViewPortAndHeader(page, {username:username, password:password})
-		await page.emulateMedia('print');
-		await page.goto(url, pageGotoOptions)
-		request.log([task],`${seq_no}-APPLIED_VIEW_PORT_AND_HEADER-${url}-${pid}`)
-		let fScreenshot = await captureFoldScreenshot(page, url, pid, seq_no, task, request)
-		return {
-			screenshot : fScreenshot
-		}
-	} catch (err) {
-		request.log(['REPORTPREVIEWERROR'],
-				`${seq_no}-SCREENSHOT_ERRORS-${url}-${pid}-${err.message}`)
-		throw err
-	} finally {
-		if (browser){
-			try {
-				if (page){
-					await page.close()
-				}
-				await browser.close()
-				request.log([task],`${seq_no}-BROWSER_CLOSED-${url}-${pid}`)
-			} catch (err){
-				request.log(['REPORTPREVIEWERROR'],`${seq_no}-BROWSER_CLOSING_ERRORS-${url}-${pid}`)
-			}
-		} else {
-			request.log(['REPORTPREVIEWINFO'],`${seq_no}-NO_BROWSER-${url}-${pid}`)
 		}
 	}
 }
