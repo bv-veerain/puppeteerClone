@@ -264,7 +264,7 @@ exports.generateHarAndScreenshot = async (url, proxy_server, username, password,
 			}
 		}
 	} catch (err) {
-		reques.log(['HARANDSCREENSHOTERROR'],
+		request.log(['HARANDSCREENSHOTERROR'],
 				`${seq_no}-SCREENSHOT_ERRORS-${url}-${pid}-${err.message}`)
 		throw err
 	} finally {
