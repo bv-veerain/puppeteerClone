@@ -38,7 +38,7 @@ const setViewPortAndHeader = async (page, options={}) => {
 }
 
 const autoScroll = async (page) => {
-	return await page.evaluate(async () => {
+	await page.evaluate(async () => {
 		await new Promise((resolve, reject) => {
 			let totalHeight = 0
 			let distance = 200
@@ -47,7 +47,7 @@ const autoScroll = async (page) => {
 				window.maxHeight = scrollHeight
 				window.scrollBy(0, distance)
 				totalHeight += distance
-				if(totalHeight >= scrollHeight || totalHeight > 15000){
+				if(totalHeight >= scrollHeight || totalHeight > 20000){
 					clearInterval(timer)
 					resolve()
 				}
@@ -56,6 +56,7 @@ const autoScroll = async (page) => {
 		window.scrollTo(0, 0)
 		return maxHeight
 	})
+	return page.evaluate(async () => { return document.body.scrollHeight })
 }
 
 const disableGifImages = async (page) => {
@@ -115,19 +116,41 @@ const disableAnimation = async (page) => {
 	})
 }
 
+const scrollPageTo = async(page, height) => {
+	await page.evaluate(
+		async (height) => {
+			window.scrollTo(0, height);
+			if (jQuery) {
+				jQuery('body').animate({ scrollTop: height }, 0);
+			} else if ($) {
+				$('body').animate({ scrollTop: height }, 0);
+			} else {
+				throw "Scrolling Failed. JQuery is not installed"
+			}
+		}, height)
+}
+
 const captureStitchedFpageScreenshot = async (page, maxHeight, url, seq_no, pid, task, request) => {
 	let heightSoFar = 0, stitchedFpageScreenshot, screenshotTimedout = false
-	const viewport = await page.viewport()
+	let viewport = await page.viewport()
 	stitchedFpageScreenshot = await new Jimp(viewport.width, maxHeight, 0x0)
-	for( let itr = 0; (itr * viewport.height) <= maxHeight; itr++) {
+	for( let itr = 0; heightSoFar <= maxHeight; itr++) {
 		heightSoFar += viewport.height
+		let height = itr * viewport.height
 		let clipHeight =  heightSoFar > maxHeight ?
 			(viewport.height - (heightSoFar - maxHeight)) : viewport.height
-		let clipBuf = await Promise.race([page.screenshot({
-			type: 'jpeg',
-			fullPage: false,
-			clip: {x: 0, y: itr * viewport.height, width: viewport.width, height: clipHeight}
-		}), new Promise((resolve) => setTimeout(resolve, 20000, 'Screenshot_TimedOut'))
+		if (clipHeight < viewport.height) {
+			await page.setViewport({
+				width: viewport.width,
+				height: clipHeight
+			})
+			await scrollPageTo(page, maxHeight-clipHeight)
+		} else {
+			await scrollPageTo(page, height)
+		}
+		let clipBuf = await Promise.race([
+			page.screenshot({type: 'jpeg'}),
+			new Promise((resolve) => setTimeout(resolve, 20000, 'Screenshot_TimedOut'))
 		])
 		if (clipBuf == 'Screenshot_TimedOut') {
 			screenshotTimedout = true
@@ -175,8 +198,8 @@ const captureFoldScreenshot = async (page, url, pid, seq_no, task, request) => {
 
 const disbaleYTFrames = async (page) => {
 	await page.evaluate(async () => {
-		let newSrc = "https://www.youtube.com/embed/sP6pNfyCiM4sddsdssdds"
 		let frames =  jQuery("iframe")
+		let newSrc = "https://www.youtube.com/embed/sP6pNfyCiM4sddsdssd"
 		if (frames) {
 			frames.filter("[src*='www.youtube.com/'], [src*='www.youtube-nocookie.com/embed']").attr("src", newSrc)
 		}
@@ -211,7 +234,11 @@ exports.generateHarAndScreenshot = async (url, proxy_server, username, password,
 		if (options.animations_disabled) {
 			await disableAnimation(page)
 		}
-		const response = await page.goto(url, pageGotoOptions)
+		const pageOptions = {
+			waitUntil: 'networkidle2',
+			timeout: 40000
+		}
+		const response = await page.goto(url, pageOptions)
 		request.log([task],`${seq_no}-URL_LOADED-${url}-${pid}`)
 		const data = await Promise.race([
 			har.stop(), new Promise((resolve) => setTimeout(resolve, 20000, 'Har Timed Out'))
@@ -231,9 +258,10 @@ exports.generateHarAndScreenshot = async (url, proxy_server, username, password,
 			}
 			await page.waitFor(options.delay)
 			request.log([task],`${seq_no}-SCROLLING_PAGE-${url}-${pid}`)
-			const maxHeight = await Promise.race([
-				autoScroll(page), new Promise((resolve) => setTimeout(resolve, 20000, 'Scroll_TimedOut'))
+			let maxHeight = await Promise.race([
+				autoScroll(page), new Promise((resolve) => setTimeout(resolve, 200000, 'Scroll_TimedOut'))
 			])
+			maxHeight = maxHeight < 20000 ? maxHeight : 20000
 			if (maxHeight == 'Scroll_TimedOut') {
 				request.log([task],`${seq_no}-SCROLLING_TIMEDOUT-${url}-${pid}`)
 				throw Error("Scroll_TimeOut")
