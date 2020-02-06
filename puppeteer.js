@@ -259,11 +259,11 @@ exports.generateHarAndScreenshot = async (url, proxy_server, username, password,
 			let maxHeight = await Promise.race([
 				autoScroll(page), new Promise((resolve) => setTimeout(resolve, 20000, 'Scroll_TimedOut'))
 			])
-			maxHeight = maxHeight < 20000 ? maxHeight : 20000
 			if (maxHeight == 'Scroll_TimedOut') {
 				request.log([task],`${seq_no}-SCROLLING_TIMEDOUT-${url}-${pid}`)
 				throw Error("Scroll_TimeOut")
 			}
+			maxHeight = maxHeight < 20000 ? maxHeight : 20000
 			request.log([task],`${seq_no}-SCROLLING_DONE-${url}-${pid}`)
 			await page.waitFor(4000)
 			let fpageScreenshotEncodedBuf, stitchedFpageScreenshotEncodedBuf, foldScreenshotEncodedBuf
