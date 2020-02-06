@@ -1,11 +1,11 @@
 
 body { 
 	filter: blur(0);
-	overflow:auto;
+	overflow: auto;
 }
 
 html {
-  overflow-y:auto;
+	overflow-y: auto;
 }
 
 *,

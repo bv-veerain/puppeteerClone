@@ -56,7 +56,7 @@ const autoScroll = async (page) => {
 		window.scrollTo(0, 0)
 		return maxHeight
 	})
-	return page.evaluate(async () => { return document.body.scrollHeight })
+	return await page.evaluate(async () => { return document.body.scrollHeight })
 }
 
 const disableGifImages = async (page) => {
@@ -124,8 +124,6 @@ const scrollPageTo = async(page, height) => {
 				jQuery('body').animate({ scrollTop: height }, 0);
 			} else if ($) {
 				$('body').animate({ scrollTop: height }, 0);
-			} else {
-				throw "Scrolling Failed. JQuery is not installed"
 			}
 		}, height)
 }
@@ -144,7 +142,7 @@ const captureStitchedFpageScreenshot = async (page, maxHeight, url, seq_no, pid,
 				width: viewport.width,
 				height: clipHeight
 			})
-			await scrollPageTo(page, maxHeight-clipHeight)
+			await scrollPageTo(page, maxHeight)
 		} else {
 			await scrollPageTo(page, height)
 		}
@@ -259,7 +257,7 @@ exports.generateHarAndScreenshot = async (url, proxy_server, username, password,
 			await page.waitFor(options.delay)
 			request.log([task],`${seq_no}-SCROLLING_PAGE-${url}-${pid}`)
 			let maxHeight = await Promise.race([
-				autoScroll(page), new Promise((resolve) => setTimeout(resolve, 200000, 'Scroll_TimedOut'))
+				autoScroll(page), new Promise((resolve) => setTimeout(resolve, 20000, 'Scroll_TimedOut'))
 			])
 			maxHeight = maxHeight < 20000 ? maxHeight : 20000
 			if (maxHeight == 'Scroll_TimedOut') {
