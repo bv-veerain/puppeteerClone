@@ -120,11 +120,13 @@ const scrollPageTo = async(page, height) => {
 	await page.evaluate(
 		async (height) => {
 			window.scrollTo(0, height);
-			if (jQuery) {
-				jQuery('body').animate({ scrollTop: height }, 0);
-			} else if ($) {
-				$('body').animate({ scrollTop: height }, 0);
-			}
+			try {
+				if (jQuery) {
+					jQuery('body').animate({ scrollTop: height }, 0);
+				} else if ($) {
+					$('body').animate({ scrollTop: height }, 0);
+				}
+			} catch(e) {}
 		}, height)
 }
 
@@ -257,7 +259,7 @@ exports.generateHarAndScreenshot = async (url, proxy_server, username, password,
 			await page.waitFor(options.delay)
 			request.log([task],`${seq_no}-SCROLLING_PAGE-${url}-${pid}`)
 			let maxHeight = await Promise.race([
-				autoScroll(page), new Promise((resolve) => setTimeout(resolve, 20000, 'Scroll_TimedOut'))
+				autoScroll(page), new Promise((resolve) => setTimeout(resolve, 35000, 'Scroll_TimedOut'))
 			])
 			if (maxHeight == 'Scroll_TimedOut') {
 				request.log([task],`${seq_no}-SCROLLING_TIMEDOUT-${url}-${pid}`)
