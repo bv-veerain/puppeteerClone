@@ -160,6 +160,8 @@ const captureStitchedFpageScreenshot = async (page, maxHeight, url, seq_no, pid,
 			await stitchedFpageScreenshot.composite(clip, 0, itr * viewport.height)
 		}
 	}
+	await scrollPageTo(page, 0)
+	await page.setViewport({width: 1366, height: 768})
 	if (!screenshotTimedout) {
 		let buff = await stitchedFpageScreenshot.getBufferAsync(Jimp.MIME_JPEG)
 		request.log([task],`${seq_no}-STITCHED_FULLPAGE_SCREENSHOT_TAKEN-${url}-${pid}`)
