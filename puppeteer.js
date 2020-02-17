@@ -302,9 +302,27 @@ exports.reportPreview = async (url, proxy_server, username, password, options, r
 		await page.emulateMedia('print');
 		await page.goto(url, pageGotoOptions)
 		request.log([task],`${seq_no}-APPLIED_VIEW_PORT_AND_HEADER-${url}-${pid}`)
-		let fScreenshot = await captureFoldScreenshot(page, url, pid, seq_no, task, request)
+		const viewport = await page.viewport()
+		const totalHeight = await Promise.race([
+				autoScroll(page), new Promise((resolve) => setTimeout(resolve, 20000, 'Scroll_TimedOut'))
+		])
+		const totalScreenShots = Math.floor(totalHeight/viewport.height)
+		const screenshots = []
+		for(let i = 0;i < totalScreenShots; i++){
+			let screenshot = await page.screenshot(
+				{
+				type: 'jpeg',
+				encoding: 'base64'
+				}
+			)
+			await page.evaluate((offset) => {
+				height = window.visualViewport.height;
+				window.scrollBy(0, height + offset);
+      }, 50);
+			screenshots.push(screenshot)
+		}
 		return {
-			screenshot : fScreenshot
+			screenshots : screenshots
 		}
 	} catch (err) {
 		request.log(['REPORTPREVIEWERROR'],
