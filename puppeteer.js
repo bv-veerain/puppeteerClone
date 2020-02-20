@@ -318,7 +318,7 @@ exports.reportPreview = async (url, proxy_server, username, password, options, r
 			await page.evaluate((offset) => {
 				height = window.visualViewport.height;
 				window.scrollBy(0, height + offset);
-      }, 50);
+			}, 50);
 			screenshots.push(screenshot)
 		}
 		return {
