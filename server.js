@@ -81,6 +81,27 @@ server.route({
 
 server.route({
 	method: 'POST',
+	path: '/preview_report',
+	handler: async(request, h) => {
+		try {
+			const data = request.payload
+			let screenshot = await Puppeteer.reportPreview(
+				data.url,
+				data.proxy,
+				data.username,
+				data.password,
+				data.options,
+				request
+			)
+			return (JSON.stringify(screenshot))
+		} catch (err) {
+			return h.response(err.message).code(422)
+		}
+	}
+})
+
+server.route({
+	method: 'POST',
 	path: '/load_page',
 	config: {
 		payload: {

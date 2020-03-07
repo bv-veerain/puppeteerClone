@@ -314,6 +314,67 @@ exports.generateHarAndScreenshot = async (url, proxy_server, username, password,
 	}
 }
 
+exports.reportPreview = async (url, proxy_server, username, password, options, request) => {
+	let browser, pid, args, page
+	let seq_no = genRandomSequence()
+	args = proxy_server ? [ `--proxy-server=${proxy_server}` ] : []
+	args = args.concat(['--no-sandbox','--disable-web-security',
+		'--disable-gpu', '--hide-scrollbars', '--disable-setuid-sandbox'])
+	let task = 'PREVIEWREPORT'
+	try {
+		request.log([task],`${seq_no}-BROWSER_LAUNCHING-${url}`)
+		let res = await launchChromeWithNewPage(args)
+		browser = res.browser
+		page = res.page
+		pid = browser.process().pid
+		request.log([task],`${seq_no}-BROWSER_LAUNCHED_WITH_NEW_PAGE-${url}-${pid}`)
+		page = await setViewPortAndHeader(page, {username:username, password:password})
+		await page.emulateMedia('print');
+		await page.goto(url, pageGotoOptions)
+		request.log([task],`${seq_no}-APPLIED_VIEW_PORT_AND_HEADER-${url}-${pid}`)
+		const viewport = await page.viewport()
+		const totalHeight = await Promise.race([
+				autoScroll(page), new Promise((resolve) => setTimeout(resolve, 20000, 'Scroll_TimedOut'))
+		])
+		const totalScreenShots = Math.floor(totalHeight/viewport.height)
+		const screenshots = []
+		for(let i = 0;i < totalScreenShots; i++){
+			let screenshot = await page.screenshot(
+				{
+				type: 'jpeg',
+				encoding: 'base64'
+				}
+			)
+			await page.evaluate((offset) => {
+				height = window.visualViewport.height;
+				window.scrollBy(0, height + offset);
+			}, 50);
+			screenshots.push(screenshot)
+		}
+		return {
+			screenshots : screenshots
+		}
+	} catch (err) {
+		request.log(['REPORTPREVIEWERROR'],
+				`${seq_no}-SCREENSHOT_ERRORS-${url}-${pid}-${err.message}`)
+		throw err
+	} finally {
+		if (browser){
+			try {
+				if (page){
+					await page.close()
+				}
+				await browser.close()
+				request.log([task],`${seq_no}-BROWSER_CLOSED-${url}-${pid}`)
+			} catch (err){
+				request.log(['REPORTPREVIEWERROR'],`${seq_no}-BROWSER_CLOSING_ERRORS-${url}-${pid}`)
+			}
+		} else {
+			request.log(['REPORTPREVIEWINFO'],`${seq_no}-NO_BROWSER-${url}-${pid}`)
+		}
+	}
+}
+
 exports.capturePdf = async (url, proxy_server, username, password, options, request) => {
 	let browser, pid, page
 	let task = 'CAPTUREPDF'
