@@ -227,9 +227,6 @@ exports.generateHarAndScreenshot = async (url, proxy_server, username, password,
 		request.log([task],`${seq_no}-BROWSER_LAUNCHED_WITH_NEW_PAGE-${url}-${pid}`)
 		page = await setViewPortAndHeader(page, {username:username, password:password})
 		request.log([task],`${seq_no}-APPLIED_VIEW_PORT_AND_HEADER-${url}-${pid}`)
-		const har = new PuppeteerHar(page)
-		await har.start()
-		request.log([task],`${seq_no}-HAR_STARTED-${url}-${pid}`)
 		if (options.gifs_disabled) {
 			await disableGifImages(page)
 		}
@@ -240,8 +237,11 @@ exports.generateHarAndScreenshot = async (url, proxy_server, username, password,
 			waitUntil: 'networkidle2',
 			timeout: 40000
 		}
+		const har = new PuppeteerHar(page)
+		await har.start()
+		request.log([task],`${seq_no}-HAR_STARTED-${url}-${pid}`)
 		const response = await page.goto(url, pageOptions)
-		request.log([task],`${seq_no}-URL_LOADED-${url}-${pid}`)
+		request.log([task],`${seq_no}-URL_LOADED-${url}-${pid} - ${JSON.stringify(options)}`)
 		const data = await Promise.race([
 			har.stop(), new Promise((resolve) => setTimeout(resolve, 20000, 'Har Timed Out'))
 		])
