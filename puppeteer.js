@@ -135,6 +135,7 @@ const captureStitchedFpageScreenshot = async (page, maxHeight, url, seq_no, pid,
 	let viewport = await page.viewport()
 	stitchedFpageScreenshot = await new Jimp(viewport.width, maxHeight, 0x0)
 	for( let itr = 0; heightSoFar <= maxHeight; itr++) {
+		request.log([task],`${seq_no}- CAPTURING_CLIP_${itr}-${url}-${pid}`)
 		heightSoFar += viewport.height
 		let height = itr * viewport.height
 		let clipHeight =  heightSoFar > maxHeight ?
