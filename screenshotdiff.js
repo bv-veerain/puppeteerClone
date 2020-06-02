@@ -1,6 +1,7 @@
 'use strict'
 const cv = require('opencv4nodejs')
 const axios = require('axios')
+const https = require("https");
 const compareImages = require("resemblejs/compareImages")
 const Jimp = require('jimp')
 
@@ -18,7 +19,8 @@ const getScreenshotsBufs = async (screenshotUrl, targetScreenshotUrl) => {
 }
 
 const getScreenshot = (url) => {
-	return axios.get(url, {responseType: 'arraybuffer'})
+	let pupp = new https.Agent({ rejectUnauthorized: false})
+	return axios.get(url, {responseType: 'arraybuffer', httpsAgent: pupp})
 }
 
 const getDiffImage = async (screenshotBuf, targetScreenshotBuf) => {
