@@ -20,7 +20,7 @@ const getScreenshotsBufs = async (screenshotUrl, targetScreenshotUrl) => {
 
 const getScreenshot = (url) => {
 	let pupp = new https.Agent({ rejectUnauthorized: false})
-	return axios.get(url, {responseType: 'arraybuffer', { httpsAgent: pupp }})
+	return axios.get(url, {responseType: 'arraybuffer', httpsAgent: pupp})
 }
 
 const getDiffImage = async (screenshotBuf, targetScreenshotBuf) => {
