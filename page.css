@@ -2,10 +2,12 @@
 body { 
 	filter: blur(0);
 	overflow: auto;
+	scroll-behavior: auto !important;
 }
 
 html {
 	overflow-y: auto;
+	scroll-behavior: auto !important;
 }
 
 *,
