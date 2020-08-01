@@ -5,6 +5,7 @@
   "main": "server.js",
   "dependencies": {
     "axios": "^0.19.0",
+    "canvas": "^2.6.1",
     "eslint": "^5.6.0",
     "esprima": "^4.0.1",
     "good": "^8.1.1",
@@ -12,10 +13,10 @@
     "good-squeeze": "^5.1.0",
     "hapi": "^17.6.0",
     "jimp": "^0.6.4",
+    "opencv4nodejs": "^5.2.0",
     "puppeteer": "^1.8.0",
-    "puppeteer-har": "^1.1.2",
-    "resemblejs": "^3.2.0",
-    "opencv4nodejs": "^5.2.0"
+    "puppeteer-har": "^1.0.2",
+    "resemblejs": "^3.2.0"
   },
   "devDependencies": {},
   "scripts": {
