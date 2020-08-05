@@ -247,7 +247,7 @@ exports.generateHarAndScreenshot = async (url, proxy_server, username, password,
 		const har = new PuppeteerHar(page)
 		await har.start()
 		request.log([task],`${seq_no}-HAR_STARTED-${url}-${pid}`)
-		const response = await page.goto(url, pageOptions)
+		const response = await page.goto(`${url}?x=${seq_no}`, pageOptions)
 		request.log([task],`${seq_no}-URL_LOADED-${url}-${pid} - ${JSON.stringify(options)}`)
 		const data = await Promise.race([
 			har.stop(), new Promise((resolve) => setTimeout(resolve, 20000, 'Har Timed Out'))
@@ -345,7 +345,7 @@ exports.reportPreview = async (url, proxy_server, username, password, options, r
 		pid = browser.process().pid
 		request.log([task],`${seq_no}-BROWSER_LAUNCHED_WITH_NEW_PAGE-${url}-${pid}`)
 		page = await setViewPortAndHeader(page, {username:username, password:password})
-		await page.emulateMedia('print');
+		await page.emulateMediaType('print');
 		await page.goto(url, pageGotoOptions)
 		request.log([task],`${seq_no}-APPLIED_VIEW_PORT_AND_HEADER-${url}-${pid}`)
 		const viewport = await page.viewport()
