@@ -247,6 +247,7 @@ exports.generateHarAndScreenshot = async (url, proxy_server, username, password,
 		const har = new PuppeteerHar(page)
 		await har.start()
 		request.log([task],`${seq_no}-HAR_STARTED-${url}-${pid}`)
+		page.on('dialog', async dialog => { await dialog.dismiss() })
 		const response = await page.goto(`${url}?x=${seq_no}`, pageOptions)
 		request.log([task],`${seq_no}-URL_LOADED-${url}-${pid} - ${JSON.stringify(options)}`)
 		const data = await Promise.race([
