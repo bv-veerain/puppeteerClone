@@ -37,7 +37,13 @@ const setViewPortAndHeader = async (page, options={}) => {
 	return page
 }
 
-const autoScroll = async (page) => {
+const autoScroll = async (page, waitForCookie = false) => {
+	if (waitForCookie) {
+		await page.evaluate(async () => {
+			window.scrollBy(0, 1000)
+		})
+		await page.waitFor(2000)
+	}
 	await page.evaluate(async () => {
 		await new Promise((resolve, reject) => {
 			let totalHeight = 0
@@ -47,7 +53,7 @@ const autoScroll = async (page) => {
 				window.maxHeight = scrollHeight
 				window.scrollBy(0, distance)
 				totalHeight += distance
-				if(totalHeight >= scrollHeight || totalHeight > 20000){
+				if (totalHeight >= scrollHeight || totalHeight > 15000) {
 					clearInterval(timer)
 					resolve()
 				}
@@ -242,7 +248,7 @@ exports.generateHarAndScreenshot = async (url, proxy_server, username, password,
 		await har.start()
 		request.log([task],`${seq_no}-HAR_STARTED-${url}-${pid}`)
 		page.on('dialog', async dialog => { await dialog.dismiss() })
-		const response = await page.goto(url, pageOptions)
+		const response = await page.goto(`${url}?x=${seq_no}`, pageOptions)
 		request.log([task],`${seq_no}-URL_LOADED-${url}-${pid} - ${JSON.stringify(options)}`)
 		const data = await Promise.race([
 			har.stop(), new Promise((resolve) => setTimeout(resolve, 20000, 'Har Timed Out'))
@@ -262,14 +268,23 @@ exports.generateHarAndScreenshot = async (url, proxy_server, username, password,
 			}
 			await page.waitFor(options.delay)
 			request.log([task],`${seq_no}-SCROLLING_PAGE-${url}-${pid}`)
-			let maxHeight = await Promise.race([
-				autoScroll(page), new Promise((resolve) => setTimeout(resolve, 35000, 'Scroll_TimedOut'))
-			])
-			if (maxHeight == 'Scroll_TimedOut') {
-				request.log([task],`${seq_no}-SCROLLING_TIMEDOUT-${url}-${pid}`)
-				throw Error("Scroll_TimeOut")
+			var maxHeight = 0
+			try {
+				maxHeight = await Promise.race([
+					autoScroll(page),
+					new Promise((resolve, reject) => setTimeout(() => reject(new Error("Scroll_TimedOut")), 30000))
+				])
+			} catch(err) {
+				if (err.message.includes("Execution context was destroyed")) {
+					maxHeight = await Promise.race([
+						autoScroll(page, true),
+						new Promise((resolve, reject) => setTimeout(() => reject(new Error("Scroll_TimedOut")), 30000))
+					])
+				} else {
+					throw err
+				}
 			}
-			maxHeight = maxHeight < 20000 ? maxHeight : 20000
+			maxHeight = maxHeight < 15000 ? maxHeight : 15000
 			request.log([task],`${seq_no}-SCROLLING_DONE-${url}-${pid}`)
 			await page.waitFor(4000)
 			let fpageScreenshotEncodedBuf, stitchedFpageScreenshotEncodedBuf, foldScreenshotEncodedBuf
@@ -331,7 +346,7 @@ exports.reportPreview = async (url, proxy_server, username, password, options, r
 		pid = browser.process().pid
 		request.log([task],`${seq_no}-BROWSER_LAUNCHED_WITH_NEW_PAGE-${url}-${pid}`)
 		page = await setViewPortAndHeader(page, {username:username, password:password})
-		await page.emulateMedia('print');
+		await page.emulateMediaType('print');
 		await page.goto(url, pageGotoOptions)
 		request.log([task],`${seq_no}-APPLIED_VIEW_PORT_AND_HEADER-${url}-${pid}`)
 		const viewport = await page.viewport()
