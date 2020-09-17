@@ -215,6 +215,90 @@ const disbaleYTFrames = async (page) => {
 	})
 }
 
+const visitUrlGotoOptions = {
+	waitUntil: 'networkidle0',
+	timeout: 40000
+}
+
+const openNewTab = async (browser, url, headers, responses) => {
+	let new_tab_urls = []
+	let url_requests = []
+	let url_responses = {}
+	let page = await browser.newPage();
+	let cache_param = genRandomSequence()
+	await page.setExtraHTTPHeaders(headers);
+	try {
+		browser.on('targetcreated', async target => {
+			let new_page = await target.page()
+			if (new_page && target.url() !== 'about:blank') {
+				new_tab_urls.push(Buffer.from(target.url()).toString('base64'))
+			}
+		})
+		page.on('request', request => {
+			if (!request.url().match(/^data:/)) {
+				site_requests.push(Buffer.from(request.url()).toString('base64'))
+			}
+			request.continue()
+		})
+		page.on('response', response => {
+			if (!response.url().match(/^data:/)) {
+				let resp = {}
+				let resp_code = response.status()
+				resp["code"] = resp_code
+				if ((resp_code >= 300) && (resp_code <= 399)) {
+					resp["location"] = Buffer.from(response.headers()['location']).toString('base64')
+				}
+				site_responses[Buffer.from(response.url()).toString('base64')] = resp
+			}
+		})
+
+		await page.goto(`${url}?x=${cache_param}`, visitUrlGotoOptions)
+		await page.waitFor(10000) //wait for 1 second
+		await page.mouse.click(0, 0)
+		await page.waitFor(10000) //wait for 1 second
+		responses[Buffer.from(url).toString('base64')] = {
+			page_url: Buffer.from(page.url()).toString('base64'),
+			requests: url_requests,
+			responses: url_responses,
+			new_tab_urls: new_tab_urls
+		}
+	} catch(err) {
+		responses[Buffer.from(url).toString('base64')]['error_message'] = err
+	}
+}
+
+exports.visitUrls = async(urls, headers, request) => {
+	let tabs_to_open = urls.length
+	let res = await launchChromeWithNewPage([])
+	let browser = res.browser
+	let promises = []
+	let responses = {}
+	urls.forEach((url) => {
+		responses[Buffer.from(url).toString('base64')] = {}
+	})
+
+	let task = "VISIT_SITE"
+	let seq_no = genRandomSequence()
+
+	try{
+		request.log([task], '${seq_no}-BROWSER_LAUNCHING')
+		urls.forEach((url) => {
+			let _promise = openNewTab(browser, url, headers, responses)
+			promises.push(_promise)
+		})
+		await Promise.all(promises).then((resp) => {
+		})
+	} catch(err) {
+		request.log(['SITE_LOAD_ERROR'], '${seq_no}-SOURCE_LOAD_FAILED-${err.message}')
+		throw err
+	} finally {
+		if (browser){
+			browser.close()
+		}
+	}
+	return responses
+}
+
 exports.generateHarAndScreenshot = async (url, proxy_server, username, password, options, request) => {
 	let browser, pid, args, page
 	let seq_no = genRandomSequence()

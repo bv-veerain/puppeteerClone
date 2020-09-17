@@ -12,6 +12,26 @@ const server = Hapi.server({
 
 server.route({
 	method: 'POST',
+	path: '/visit_urls',
+	config:{
+		payload: {
+			maxBytes: 1024 * 1024 * 25
+		}
+	},
+	handler: async(request, h) => {
+		try {
+			const data = request.payload
+			let res = await Puppeteer.visitUrls(data.urls, data.headers, request)
+			return (JSON.stringify(res))
+		}catch (err) {
+			request.log(['SITE_LOAD_ERROR'], err.message)
+			return h.response(err.message).code(422)
+		}
+	}
+})
+
+server.route({
+	method: 'POST',
 	path: '/capture_pdf',
 	handler: async(request, h) => {
 		try {
