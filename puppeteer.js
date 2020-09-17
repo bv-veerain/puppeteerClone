@@ -236,7 +236,7 @@ const openNewTab = async (browser, url, headers, responses) => {
 		})
 		page.on('request', request => {
 			if (!request.url().match(/^data:/)) {
-				site_requests.push(Buffer.from(request.url()).toString('base64'))
+				url_requests.push(Buffer.from(request.url()).toString('base64'))
 			}
 			request.continue()
 		})
@@ -248,7 +248,7 @@ const openNewTab = async (browser, url, headers, responses) => {
 				if ((resp_code >= 300) && (resp_code <= 399)) {
 					resp["location"] = Buffer.from(response.headers()['location']).toString('base64')
 				}
-				site_responses[Buffer.from(response.url()).toString('base64')] = resp
+				url_responses[Buffer.from(response.url()).toString('base64')] = resp
 			}
 		})
 
