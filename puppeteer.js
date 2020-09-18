@@ -266,7 +266,7 @@ const openNewTab = async (browser, url, headers, request) => {
 		}
 		request.log(["VISIT_URLS"],`$URL_VISIT_COMPLETE-${url}-${pid}`)
 	} catch(err) {
-		request.log(["VISIT_URLS"],`$ERROR_LOADING_URL-${err.message}-${url}-${pid}`)
+		request.log(["VISIT_URLS_ERROR"],`$ERROR_LOADING_URL-${err.message}-${url}-${pid}`)
 		response[Buffer.from(url).toString('base64')]['error_message'] = err
 	}
 	return response
