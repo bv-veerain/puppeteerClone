@@ -227,6 +227,8 @@ const openNewTab = async (browser, url, headers, responses) => {
 	let page = await browser.newPage();
 	let cache_param = genRandomSequence()
 	await page.setExtraHTTPHeaders(headers);
+	let task = "VISIT_URLS"
+	let pid = browser.process().pid
 	try {
 		browser.on('targetcreated', async target => {
 			let new_page = await target.page()
@@ -253,16 +255,18 @@ const openNewTab = async (browser, url, headers, responses) => {
 		})
 
 		await page.goto(`${url}?x=${cache_param}`, visitUrlGotoOptions)
-		await page.waitFor(10000) //wait for 1 second
+		await page.waitFor(1000) //wait for 1 second
 		await page.mouse.click(0, 0)
-		await page.waitFor(10000) //wait for 1 second
+		await page.waitFor(1000) //wait for 1 second
 		responses[Buffer.from(url).toString('base64')] = {
 			page_url: Buffer.from(page.url()).toString('base64'),
 			requests: url_requests,
 			responses: url_responses,
 			new_tab_urls: new_tab_urls
 		}
+		request.log([task],`$URLVISITCOMPLETE-${url}-${pid}`)
 	} catch(err) {
+		request.log([task],`$ERRORLOADINGURL-${err.message}-${url}-${pid}`)
 		responses[Buffer.from(url).toString('base64')]['error_message'] = err
 	}
 }
@@ -277,7 +281,7 @@ exports.visitUrls = async(urls, headers, request) => {
 		responses[Buffer.from(url).toString('base64')] = {}
 	})
 
-	let task = "VISIT_SITE"
+	let task = "VISIT_URLS"
 	let seq_no = genRandomSequence()
 
 	try{
