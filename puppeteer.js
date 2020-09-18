@@ -220,14 +220,14 @@ const visitUrlGotoOptions = {
 	timeout: 40000
 }
 
-const openNewTab = async (browser, url, headers, responses) => {
+const openNewTab = async (browser, url, headers, request) => {
 	let new_tab_urls = []
 	let url_requests = []
 	let url_responses = {}
+	let response = {}
 	let page = await browser.newPage();
 	let cache_param = genRandomSequence()
 	await page.setExtraHTTPHeaders(headers);
-	let task = "VISIT_URLS"
 	let pid = browser.process().pid
 	try {
 		browser.on('targetcreated', async target => {
@@ -258,42 +258,43 @@ const openNewTab = async (browser, url, headers, responses) => {
 		await page.waitFor(1000) //wait for 1 second
 		await page.mouse.click(0, 0)
 		await page.waitFor(1000) //wait for 1 second
-		responses[Buffer.from(url).toString('base64')] = {
+		response[Buffer.from(url).toString('base64')] = {
 			page_url: Buffer.from(page.url()).toString('base64'),
 			requests: url_requests,
 			responses: url_responses,
 			new_tab_urls: new_tab_urls
 		}
-		request.log([task],`$URLVISITCOMPLETE-${url}-${pid}`)
+		request.log(["VISIT_URLS"],`$URL_VISIT_COMPLETE-${url}-${pid}`)
 	} catch(err) {
-		request.log([task],`$ERRORLOADINGURL-${err.message}-${url}-${pid}`)
-		responses[Buffer.from(url).toString('base64')]['error_message'] = err
+		request.log(["VISIT_URLS"],`$ERROR_LOADING_URL-${err.message}-${url}-${pid}`)
+		response[Buffer.from(url).toString('base64')]['error_message'] = err
 	}
+	return response
 }
 
 exports.visitUrls = async(urls, headers, request) => {
+	let browser
 	let tabs_to_open = urls.length
-	let res = await launchChromeWithNewPage([])
-	let browser = res.browser
 	let promises = []
 	let responses = {}
-	urls.forEach((url) => {
-		responses[Buffer.from(url).toString('base64')] = {}
-	})
-
-	let task = "VISIT_URLS"
 	let seq_no = genRandomSequence()
-
 	try{
-		request.log([task], '${seq_no}-BROWSER_LAUNCHING')
+		let res = await launchChromeWithNewPage([])
+		browser = res.browser
+		request.log(["VISIT_URLS"], `${seq_no}-BROWSER_LAUNCHING`)
 		urls.forEach((url) => {
-			let _promise = openNewTab(browser, url, headers, responses)
+			let _promise = openNewTab(browser, url, headers, request)
 			promises.push(_promise)
 		})
 		await Promise.all(promises).then((resp) => {
+			resp.forEach((_resp) => {
+				Object.assign(responses, _resp)
+			}) 
+		}, err => {
+			request.log(['VISIT_URLS_ERROR'], `${seq_no}-SOURCE_LOAD_FAILED-${err.message}`)
 		})
 	} catch(err) {
-		request.log(['SITE_LOAD_ERROR'], '${seq_no}-SOURCE_LOAD_FAILED-${err.message}')
+		request.log(['VISIT_URLS_ERROR'], `${seq_no}-BROWSER_LAUNCH_FAILED-${err.message}`)
 		throw err
 	} finally {
 		if (browser){
