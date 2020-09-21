@@ -215,6 +215,95 @@ const disbaleYTFrames = async (page) => {
 	})
 }
 
+const visitUrlGotoOptions = {
+	waitUntil: 'networkidle0',
+	timeout: 40000
+}
+
+const openNewTab = async (browser, url, headers, request) => {
+	let new_tab_urls = []
+	let url_requests = []
+	let url_responses = {}
+	let response = {}
+	let page = await browser.newPage();
+	let cache_param = genRandomSequence()
+	await page.setExtraHTTPHeaders(headers);
+	let pid = browser.process().pid
+	try {
+		browser.on('targetcreated', async target => {
+			let new_page = await target.page()
+			if (new_page && target.url() !== 'about:blank') {
+				new_tab_urls.push(Buffer.from(target.url()).toString('base64'))
+			}
+		})
+		page.on('request', request => {
+			if (!request.url().match(/^data:/)) {
+				url_requests.push(Buffer.from(request.url()).toString('base64'))
+			}
+			request.continue()
+		})
+		page.on('response', response => {
+			if (!response.url().match(/^data:/)) {
+				let resp = {}
+				let resp_code = response.status()
+				resp["code"] = resp_code
+				if ((resp_code >= 300) && (resp_code <= 399)) {
+					resp["location"] = Buffer.from(response.headers()['location']).toString('base64')
+				}
+				url_responses[Buffer.from(response.url()).toString('base64')] = resp
+			}
+		})
+
+		await page.goto(`${url}?x=${cache_param}`, visitUrlGotoOptions)
+		await page.waitFor(1000) //wait for 1 second
+		await page.mouse.click(0, 0)
+		await page.waitFor(1000) //wait for 1 second
+		response[Buffer.from(url).toString('base64')] = {
+			page_url: Buffer.from(page.url()).toString('base64'),
+			requests: url_requests,
+			responses: url_responses,
+			new_tab_urls: new_tab_urls
+		}
+		request.log(["VISIT_URLS"],`$URL_VISIT_COMPLETE-${url}-${pid}`)
+	} catch(err) {
+		request.log(["VISIT_URLS_ERROR"],`$ERROR_LOADING_URL-${err.message}-${url}-${pid}`)
+		response[Buffer.from(url).toString('base64')]['error_message'] = err
+	}
+	return response
+}
+
+exports.visitUrls = async(urls, headers, request) => {
+	let browser
+	let tabs_to_open = urls.length
+	let promises = []
+	let responses = {}
+	let seq_no = genRandomSequence()
+	try{
+		let res = await launchChromeWithNewPage([])
+		browser = res.browser
+		request.log(["VISIT_URLS"], `${seq_no}-BROWSER_LAUNCHING`)
+		urls.forEach((url) => {
+			let _promise = openNewTab(browser, url, headers, request)
+			promises.push(_promise)
+		})
+		await Promise.all(promises).then((resp) => {
+			resp.forEach((_resp) => {
+				Object.assign(responses, _resp)
+			}) 
+		}, err => {
+			request.log(['VISIT_URLS_ERROR'], `${seq_no}-SOURCE_LOAD_FAILED-${err.message}`)
+		})
+	} catch(err) {
+		request.log(['VISIT_URLS_ERROR'], `${seq_no}-BROWSER_LAUNCH_FAILED-${err.message}`)
+		throw err
+	} finally {
+		if (browser){
+			browser.close()
+		}
+	}
+	return responses
+}
+
 exports.generateHarAndScreenshot = async (url, proxy_server, username, password, options, request) => {
 	let browser, pid, args, page
 	let seq_no = genRandomSequence()
