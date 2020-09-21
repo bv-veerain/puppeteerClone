@@ -346,6 +346,11 @@ exports.generateHarAndScreenshot = async (url, proxy_server, username, password,
 			throw Error('Har_TimedOut')
 		}
 		request.log([task],`${seq_no}-HAR_STOPPED-${url}-${pid}`)
+		if (response == null) {
+			pageOptions['waitUntil'] = 'networkidle0'
+			response = await page.goto(`${url}?x=${seq_no}`, pageOptions)
+			request.log([task],`${seq_no}-URL_LOADED-${url}-${pid} - ${JSON.stringify(options)}`)
+		}
 		if (allowScreenshotRespCode.includes(response.status())) {
 			await page.addStyleTag({path: 'page.css'})
 			if (options.yt_frames_disabled) {
